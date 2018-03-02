@@ -1,0 +1,14 @@
+{
+    "id": "{DB34DEDB-D0E8-4EE7-8DF8-205AB5D5DA9C}",
+    "name": "IRiS",
+    "type": 3,
+    "vendor": "",
+    "aliases": 
+    [
+        "IRiS"
+    ],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "IRIS"
+}
