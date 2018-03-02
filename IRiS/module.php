@@ -14,6 +14,10 @@ class IRiS extends WebHookModule {
         
         //These lines are parsed on Symcon Startup or Instance creation
         //You cannot use variables here. Just static values.
+        $this->RegisterPropertyString("Address", "");
+        $this->RegisterPropertyString("BuildingMaterial", "");
+        $this->RegisterPropertyString("HeatingType", "");
+
         $this->RegisterPropertyString("Floors", "[]");
         $this->RegisterPropertyString("Rooms", "[]");
         
@@ -45,6 +49,21 @@ class IRiS extends WebHookModule {
         }
         return json_encode([
             'elements' => [
+                [
+                    'type' => 'ValidationTextBox',
+                    'name' => 'Address',
+                    'caption' => 'Address'
+                ],
+                [
+                    'type' => 'ValidationTextBox',
+                    'name' => 'BuildingMaterial',
+                    'caption' => 'Building Material'
+                ],
+                [
+                    'type' => 'ValidationTextBox',
+                    'name' => 'HeatingType',
+                    'caption' => 'Heating Type'
+                ],
                 [
                     'type' => 'List',
                     'name' => 'Floors',
@@ -169,6 +188,14 @@ class IRiS extends WebHookModule {
         }
 
         switch ($request['method']) {
+            case 'getGeneralInformation':
+                $this->ReturnResult($request['id'], [
+                    'address' => $this->ReadPropertyString('Address'),
+                    'buildingMaterial' => $this->ReadPropertyString('BuildingMaterial'),
+                    'heatingType' => $this->ReadPropertyString('HeatingType')
+                ]);
+                break;
+
             case 'getObjectList':
                 $this->ReturnResult($request['id'], [
                     'persons' => [], // TODO: Fill persons
