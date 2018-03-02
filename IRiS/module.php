@@ -205,6 +205,14 @@ class IRiS extends WebHookModule {
                 ]);
                 break;
 
+            case 'getStatus':
+                $ids = [];
+                if (isset($request['params']['ids'])) {
+                    $ids = $request['params']['ids'];
+                }
+                $this->ReturnResult($request['id'], $this->ComputeStatus($ids));
+                break;
+
             default:
                 $this->SendDebug("IRiS - Error", "Undefined method", 0);
 
@@ -219,6 +227,27 @@ class IRiS extends WebHookModule {
         ]);
         $this->SendDebug("IRiS - Response", $response, 0);
         echo $response;
+    }
+
+    private function ComputeStatus($ids) {
+        $persons = []; // TODO: Fill persons
+
+        $rooms = [];
+        foreach (json_decode($this->ReadPropertyString('Rooms'), true) as $room) {
+            if ((sizeof($ids) == 0) || in_array($room['id'], $ids)) {
+                $rooms[] = [
+                    'id' => $room['id'],
+                    'status' => 'fine' // TODO: Determine current state
+                ];
+            }
+        }
+
+        $devices = [];
+        return [
+            'persons' => $persons,
+            'rooms' => $rooms,
+            'devices' => $devices
+        ];
     }
 }
 
