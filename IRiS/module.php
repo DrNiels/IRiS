@@ -14,8 +14,8 @@ class IRiS extends WebHookModule {
         
         //These lines are parsed on Symcon Startup or Instance creation
         //You cannot use variables here. Just static values.
-        $this->RegisterPropertyString("floors", "[]");
-        $this->RegisterPropertyString("rooms", "[]");
+        $this->RegisterPropertyString("Floors", "[]");
+        $this->RegisterPropertyString("Rooms", "[]");
         
     }
 
@@ -34,7 +34,7 @@ class IRiS extends WebHookModule {
         $cmpFloors = function($first, $second) {
             return ($first->floor > $second->floor) ? -1 : 1;
         };
-        $floors = json_decode($this->ReadPropertyString('floors'));
+        $floors = json_decode($this->ReadPropertyString('Floors'));
         usort($floors, $cmpFloors);
         $floorOptions = [];
         foreach ($floors as $floor) {
@@ -47,7 +47,7 @@ class IRiS extends WebHookModule {
             'elements' => [
                 [
                     'type' => 'List',
-                    'name' => 'floors',
+                    'name' => 'Floors',
                     'caption' => 'Floors',
                     'add' => true,
                     'delete' => true,
@@ -98,7 +98,7 @@ class IRiS extends WebHookModule {
                 ],
                 [
                     'type' => 'List',
-                    'name' => 'rooms',
+                    'name' => 'Rooms',
                     'caption' => 'Rooms',
                     'add' => true,
                     'delete' => true,
@@ -172,9 +172,9 @@ class IRiS extends WebHookModule {
             case 'getObjectList':
                 $this->ReturnResult($request['id'], [
                     'persons' => [], // TODO: Fill persons
-                    'floors' => json_decode($this->ReadPropertyString('floors'), true),
-                    'rooms' => json_decode($this->ReadPropertyString('rooms'), true),
                     'devices' => [] // TODO: Fill devices
+                    'floors' => json_decode($this->ReadPropertyString('Floors'), true),
+                    'rooms' => json_decode($this->ReadPropertyString('Rooms'), true),
                 ]);
                 break;
 
