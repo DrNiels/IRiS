@@ -20,6 +20,7 @@ class IRiS extends WebHookModule {
 
         $this->RegisterPropertyString("Floors", "[]");
         $this->RegisterPropertyString("Rooms", "[]");
+        $this->RegisterPropertyString("SmokeDetectors", "[]");
         
     }
 
@@ -165,6 +166,61 @@ class IRiS extends WebHookModule {
                         ]
                     ],
                     'values' => []
+                ],
+                [
+                    'type' => 'List',
+                    'name' => 'SmokeDetectors',
+                    'caption' => 'Smoke Detectors',
+                    'add' => true,
+                    'delete' => true,
+                    'columns' => [
+                        [
+                            'label' => 'ID',
+                            'name' => 'id',
+                            'width' => '75px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ],
+                        [
+                            'label' => 'Room',
+                            'name' => 'room',
+                            'width' => '200px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ],
+                        [
+                            'label' => 'Variable',
+                            'name' => 'variableID',
+                            'width' => 'auto',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectVariable'
+                            ]
+                        ],
+                        [
+                            'label' => 'Map Position X',
+                            'name' => 'x',
+                            'width' => '130px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ],
+                        [
+                            'label' => 'Map Position Y',
+                            'name' => 'y',
+                            'width' => '130px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ]
+                    ],
+                    'values' => []
                 ]
             ]
         ]);
@@ -199,9 +255,9 @@ class IRiS extends WebHookModule {
             case 'getObjectList':
                 $this->ReturnResult($request['id'], [
                     'persons' => [], // TODO: Fill persons
-                    'devices' => [] // TODO: Fill devices
                     'floors' => json_decode($this->ReadPropertyString('Floors'), true),
                     'rooms' => json_decode($this->ReadPropertyString('Rooms'), true),
+                    'devices' => $this->GetObjectListDevices()
                 ]);
                 break;
 
@@ -229,6 +285,28 @@ class IRiS extends WebHookModule {
         echo $response;
     }
 
+    private function GetObjectListDevices() {
+        $result = [];
+
+        foreach (json_decode($this->ReadPropertyString('SmokeDetectors'), true) as $smokeDetector) {
+            $result[] = $this->ComputeDeviceInformation($smokeDetector, 'SmokeDetector');
+        }
+
+        return $result;
+    }
+
+    private function ComputeDeviceInformation($value, $type) {
+        return [
+            'id' => $value['id'],
+            'room' => $value['room'],
+            'position' => [
+                'x' => $value['x'],
+                'y' => $value['y']
+            ],
+            'type' => $type
+        ];
+    }
+
     private function ComputeStatus($ids) {
         $persons = []; // TODO: Fill persons
 
@@ -243,11 +321,58 @@ class IRiS extends WebHookModule {
         }
 
         $devices = [];
+        foreach (json_decode($this->ReadPropertyString('SmokeDetectors'), true) as $smokeDetector) {
+            if ((sizeof($ids) == 0) || in_array($smokeDetector['id'], $ids)) {
+                $smokeValue = $this->GetPercentageValue($smokeDetector['variableID']);
+                if ($smokeValue !== null) {
+                    $devices[] = [
+                        'id' => $smokeDetector['id'],
+                        'value' => [
+                            'smoke' => $smokeValue
+                        ]
+                    ];
+                }
+            }
+        }
+
         return [
             'persons' => $persons,
             'rooms' => $rooms,
             'devices' => $devices
         ];
+    }
+
+    private function GetPercentageValue($variableID)
+    {
+        if (!IPS_VariableExists($variableID)) {
+            return null;
+        }
+        $targetVariable = IPS_GetVariable($variableID);
+
+        if ($targetVariable['VariableCustomProfile'] != '') {
+            $profileName = $targetVariable['VariableCustomProfile'];
+        } else {
+            $profileName = $targetVariable['VariableProfile'];
+        }
+
+        $profile = IPS_GetVariableProfile($profileName);
+
+        if (($profile['MaxValue'] - $profile['MinValue']) <= 0) {
+            return null;
+        }
+
+        $valueToPercent = function ($value) use ($profile) {
+            return (($value - $profile['MinValue']) / ($profile['MaxValue'] - $profile['MinValue']));
+        };
+
+        $value = $valueToPercent(GetValue($variableID));
+
+        // Revert value for reversed profile
+        if (preg_match('/\.Reversed$/', $profileName)) {
+            $value = 1 - $value;
+        }
+
+        return max(min($value, 1), 0);
     }
 }
 
