@@ -4,8 +4,9 @@ Verwendung des Moduls:
 - Installation in IP-Symcon via Module Control
 - IRiS Instanz erstellen
 - Daten auf der Modulseite eintragen
-- Anfragen an <webfront-Adresse>/hook/iris via POST mit application/json content
-Beispiel (Postman Anfrage):
+- Anfragen an \<webfront-Adresse\>/hook/iris via POST mit application/json content
+
+#### Beispiel (Postman Anfrage):
 ````
 POST /hook/iris HTTP/1.1
 Host: 127.0.0.1:3777
