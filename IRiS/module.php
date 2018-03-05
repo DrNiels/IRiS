@@ -37,7 +37,7 @@ class IRiS extends WebHookModule {
     
     public function GetConfigurationForm() {
         $cmpFloors = function($first, $second) {
-            return ($first->floor > $second->floor) ? -1 : 1;
+            return ($first->level > $second->level) ? -1 : 1;
         };
         $floors = json_decode($this->ReadPropertyString('Floors'));
         usort($floors, $cmpFloors);
