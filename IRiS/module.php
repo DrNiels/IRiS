@@ -20,7 +20,10 @@ class IRiS extends WebHookModule {
 
         $this->RegisterPropertyString("Floors", "[]");
         $this->RegisterPropertyString("Rooms", "[]");
+        $this->RegisterPropertyString("Persons", "[]");
         $this->RegisterPropertyString("SmokeDetectors", "[]");
+        $this->RegisterPropertyString("MotionSensors", "[]");
+        $this->RegisterPropertyString("Doors", "[]");
         
     }
 
@@ -169,8 +172,205 @@ class IRiS extends WebHookModule {
                 ],
                 [
                     'type' => 'List',
+                    'name' => 'Persons',
+                    'caption' => 'Persons (with Testing options)',
+                    'add' => true,
+                    'delete' => true,
+                    'columns' => [
+                        [
+                            'label' => 'ID',
+                            'name' => 'id',
+                            'width' => '75px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ],
+                        [
+                            'label' => 'Name',
+                            'name' => 'name',
+                            'width' => 'auto',
+                            'add' => '',
+                            'edit' => [
+                                'type' => 'ValidationTextBox'
+                            ]
+                        ],
+                        [
+                            'label' => 'Birthday',
+                            'name' => 'birthday',
+                            'width' => '200px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ],
+                        [
+                            'label' => 'Diseases',
+                            'name' => 'diseases',
+                            'width' => '250px',
+                            'add' => '',
+                            'edit' => [
+                                'type' => 'ValidationTextBox'
+                            ]
+                        ],
+                        [
+                            'label' => 'Core Data',
+                            'name' => 'coreData',
+                            'width' => '100px',
+                            'add' => true,
+                            'edit' => [
+                                'type' => 'CheckBox'
+                            ]
+                        ],
+                        [
+                            'label' => 'Present?',
+                            'name' => 'present',
+                            'width' => '200px',
+                            'add' => 'Unknown',
+                            'edit' => [
+                                'type' => 'Select',
+                                'options' => [
+                                    [
+                                        'label' => 'Present',
+                                        'value' => 'Present'
+                                    ],
+                                    [
+                                        'label' => 'Not Present',
+                                        'value' => 'NotPresent'
+                                    ],
+                                    [
+                                        'label' => 'Unknown',
+                                        'value' => 'Unknown'
+                                    ]
+                                ]
+                            ]
+                        ],
+                        [
+                            'label' => 'Current Location (Room ID)',
+                            'name' => 'currentLocation',
+                            'width' => '250px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ]
+                    ],
+                    'values' => []
+                ],
+                [
+                    'type' => 'List',
                     'name' => 'SmokeDetectors',
                     'caption' => 'Smoke Detectors',
+                    'add' => true,
+                    'delete' => true,
+                    'columns' => [
+                        [
+                            'label' => 'ID',
+                            'name' => 'id',
+                            'width' => '75px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ],
+                        [
+                            'label' => 'Room',
+                            'name' => 'room',
+                            'width' => '200px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ],
+                        [
+                            'label' => 'Variable',
+                            'name' => 'variableID',
+                            'width' => 'auto',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectVariable'
+                            ]
+                        ],
+                        [
+                            'label' => 'Map Position X',
+                            'name' => 'x',
+                            'width' => '130px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ],
+                        [
+                            'label' => 'Map Position Y',
+                            'name' => 'y',
+                            'width' => '130px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ]
+                    ],
+                    'values' => []
+                ],
+                [
+                    'type' => 'List',
+                    'name' => 'MotionSensors',
+                    'caption' => 'Motion Sensors',
+                    'add' => true,
+                    'delete' => true,
+                    'columns' => [
+                        [
+                            'label' => 'ID',
+                            'name' => 'id',
+                            'width' => '75px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ],
+                        [
+                            'label' => 'Room',
+                            'name' => 'room',
+                            'width' => '200px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ],
+                        [
+                            'label' => 'Variable',
+                            'name' => 'variableID',
+                            'width' => 'auto',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectVariable'
+                            ]
+                        ],
+                        [
+                            'label' => 'Map Position X',
+                            'name' => 'x',
+                            'width' => '130px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ],
+                        [
+                            'label' => 'Map Position Y',
+                            'name' => 'y',
+                            'width' => '130px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ]
+                    ],
+                    'values' => []
+                ],
+                [
+                    'type' => 'List',
+                    'name' => 'Doors',
+                    'caption' => 'Doors',
                     'add' => true,
                     'delete' => true,
                     'columns' => [
@@ -226,6 +426,20 @@ class IRiS extends WebHookModule {
         ]);
     }
 
+    public function ChangePositionOfPerson($personID, $newRoomPosition) {
+        $persons = json_decode($this->ReadPropertyString('Persons'), true);
+
+        for ($i = 0; $i < sizeof($persons); $i++) {
+            if ($persons[$i]['id'] == $personID) {
+                $persons[$i]['currentLocation'] = $newRoomPosition;
+                break;
+            }
+        }
+
+        IPS_SetProperty($this->InstanceID, 'Persons', json_encode($persons));
+        IPS_ApplyChanges($this->InstanceID);
+    }
+
     /**
      * This function will be called by the hook control. Visibility should be protected!
      */
@@ -254,7 +468,7 @@ class IRiS extends WebHookModule {
 
             case 'getObjectList':
                 $this->ReturnResult($request['id'], [
-                    'persons' => [], // TODO: Fill persons
+                    'persons' => $this->GetObjectListPersons(),
                     'floors' => json_decode($this->ReadPropertyString('Floors'), true),
                     'rooms' => json_decode($this->ReadPropertyString('Rooms'), true),
                     'devices' => $this->GetObjectListDevices()
@@ -267,6 +481,10 @@ class IRiS extends WebHookModule {
                     $ids = $request['params']['ids'];
                 }
                 $this->ReturnResult($request['id'], $this->ComputeStatus($ids));
+                break;
+
+            case 'switchDevice':
+                $this->ReturnResult($request['id'], $this->SwitchVariable($request['params']['id'], $request['params']['value']));
                 break;
 
             default:
@@ -285,17 +503,56 @@ class IRiS extends WebHookModule {
         echo $response;
     }
 
+    private function GetObjectListPersons() {
+        $result = [];
+
+        foreach (json_decode($this->ReadPropertyString('Persons'), true) as $person) {
+            unset($person['currentLocation']);
+            unset($person['present']);
+
+            if ($person['name'] == '') {
+                unset($person['name']);
+            }
+
+            if ($person['birthday'] == 0) {
+                unset($person['birthday']);
+            }
+
+            if ($person['diseases'] == '') {
+                unset($person['diseases']);
+            }
+            else {
+                $person['diseases'] = explode(',', $person['diseases']);
+            }
+
+            $result[] = $person;
+        }
+
+        return $result;
+
+    }
+
     private function GetObjectListDevices() {
         $result = [];
 
         foreach (json_decode($this->ReadPropertyString('SmokeDetectors'), true) as $smokeDetector) {
-            $result[] = $this->ComputeDeviceInformation($smokeDetector, 'SmokeDetector');
+            $result[] = $this->ComputeDeviceInformation($smokeDetector, 'SmokeDetector', false);
+        }
+
+        foreach (json_decode($this->ReadPropertyString('MotionSensors'), true) as $motionSensor) {
+            $result[] = $this->ComputeDeviceInformation($motionSensor, 'MotionSensor', false);
+        }
+
+        foreach (json_decode($this->ReadPropertyString('Doors'), true) as $door) {
+            $variable = IPS_GetVariable($door['variableID']);
+            $switchable = ($variable['VariableCustomAction'] > 10000) || ($variable['VariableAction'] > 10000);
+            $result[] = $this->ComputeDeviceInformation($door, 'Door', $switchable);
         }
 
         return $result;
     }
 
-    private function ComputeDeviceInformation($value, $type) {
+    private function ComputeDeviceInformation($value, $type, $switchable) {
         return [
             'id' => $value['id'],
             'room' => $value['room'],
@@ -303,19 +560,38 @@ class IRiS extends WebHookModule {
                 'x' => $value['x'],
                 'y' => $value['y']
             ],
-            'type' => $type
+            'type' => $type,
+            'switchable' => $switchable
         ];
     }
 
     private function ComputeStatus($ids) {
-        $persons = []; // TODO: Fill persons
+        $persons = [];
+        foreach (json_decode($this->ReadPropertyString('Persons'), true) as $person) {
+            if ((sizeof($ids) == 0) || in_array($person['id'], $ids)) {
+                $newEntry = [
+                    'id' => $person['id'],
+                    'present' => $person['present']
+                ];
+                if ($person['present'] == 'Present') {
+                    $newEntry['likelyPositions'] = [
+                        [
+                            'room' => $person['currentLocation'],
+                            'probability' => 0.9
+                        ]
+                    ];
+                }
+
+                $persons[] = $newEntry;
+            }
+        }
 
         $rooms = [];
         foreach (json_decode($this->ReadPropertyString('Rooms'), true) as $room) {
             if ((sizeof($ids) == 0) || in_array($room['id'], $ids)) {
                 $rooms[] = [
                     'id' => $room['id'],
-                    'status' => 'fine' // TODO: Determine current state
+                    'status' => $this->ComputeStatusOfRoom($room['id'])
                 ];
             }
         }
@@ -335,11 +611,48 @@ class IRiS extends WebHookModule {
             }
         }
 
+        foreach (json_decode($this->ReadPropertyString('Doors'), true) as $door) {
+            if ((sizeof($ids) == 0) || in_array($door['id'], $ids)) {
+                $devices[] = [
+                    'id' => $door['id'],
+                    'value' => [
+                        'open' => GetValue($door['variableID'])
+                    ]
+                ];
+            }
+        }
+
         return [
             'persons' => $persons,
             'rooms' => $rooms,
             'devices' => $devices
         ];
+    }
+
+    private function ComputeStatusOfRoom($roomID) {
+        $smokeValues = [];
+
+        foreach (json_decode($this->ReadPropertyString('SmokeDetectors'), true) as $smokeDetector) {
+            if ($smokeDetector['room'] == $roomID) {
+                $smokeValues[] = $this->GetPercentageValue($smokeDetector['variableID']);
+            }
+        }
+
+        $averageSmoke = 0;
+        foreach ($smokeValues as $smokeValue) {
+            $averageSmoke += $smokeValue;
+        }
+
+        if (sizeof($smokeValues) > 0) {
+            $averageSmoke /= sizeOf($smokeValues);
+        }
+
+        if ($averageSmoke > 0.5) {
+            return 'smoked';
+        }
+        else {
+            return 'fine';
+        }
     }
 
     private function GetPercentageValue($variableID)
@@ -373,6 +686,49 @@ class IRiS extends WebHookModule {
         }
 
         return max(min($value, 1), 0);
+    }
+
+    private function SwitchVariable($irisID, $value) {
+        $variableID = $this->GetVariableIDByIRISID($irisID);
+
+        if (!IPS_VariableExists($variableID)) {
+            return false;
+        }
+
+        $targetVariable = IPS_GetVariable($variableID);
+
+        if ($targetVariable['VariableCustomAction'] != 0) {
+            $profileAction = $targetVariable['VariableCustomAction'];
+        } else {
+            $profileAction = $targetVariable['VariableAction'];
+        }
+
+        if ($profileAction < 10000) {
+            return false;
+        }
+
+        if (IPS_InstanceExists($profileAction)) {
+            IPS_RunScriptText('IPS_RequestAction(' . var_export($profileAction, true) . ', ' . var_export(IPS_GetObject($variableID)['ObjectIdent'], true) . ', ' . var_export($value, true) . ');');
+        } elseif (IPS_ScriptExists($profileAction)) {
+            IPS_RunScriptEx($profileAction, ['VARIABLE' => $variableID, 'VALUE' => $value, 'SENDER' => 'IRiS']);
+        } else {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function GetVariableIDByIRISID($irisID) {
+        foreach (["SmokeDetectors", "MotionSensors", "Doors"] as $property) {
+            foreach (json_decode($this->ReadPropertyString($property), true) as $value) {
+                if ($value['id'] == $irisID) {
+                    return $value['variableID'];
+                }
+            }
+        }
+
+        $this->SendDebug("IRiS - Error", "Variable for IRiS ID does not exist", 0);
+        return 0;
     }
 }
 
