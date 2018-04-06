@@ -652,7 +652,19 @@ class IRiS extends WebHookModule {
                 $devices[] = [
                     'id' => $door['id'],
                     'value' => [
-                        'open' => GetValue($door['variableID'])
+                        'open' => GetValueBoolean($door['variableID'])
+                    ]
+                ];
+            }
+        }
+
+        foreach (json_decode($this->ReadPropertyString('MotionSensors'), true) as $motionSensor) {
+            if ((sizeof($ids) == 0) || in_array($motionSensor['id'], $ids)) {
+                $devices[] = [
+                    'id' => $motionSensor['id'],
+                    'value' => [
+                        'motionDetected' => GetValueBoolean($motionSensor['variableID']),
+                        'lastUpdate' => IPS_GetVariable($motionSensor['variableID'])['VariableUpdated']
                     ]
                 ];
             }
