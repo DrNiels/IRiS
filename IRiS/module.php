@@ -114,6 +114,15 @@ class IRiS extends WebHookModule {
                             'edit' => [
                                 'type' => 'ValidationTextBox'
                             ]
+                        ],
+                        [
+                            'label' => 'Map',
+                            'name' => 'map',
+                            'width' => '100px',
+                            'add' => '',
+                            'edit' => [
+                                'type' => 'SelectFile'
+                            ]
                         ]
 
                     ],
@@ -469,10 +478,14 @@ class IRiS extends WebHookModule {
             case 'getObjectList':
                 $this->ReturnResult($request['id'], [
                     'persons' => $this->GetObjectListPersons(),
-                    'floors' => json_decode($this->ReadPropertyString('Floors'), true),
+                    'floors' => $this->GetObjectListFloors(),
                     'rooms' => json_decode($this->ReadPropertyString('Rooms'), true),
                     'devices' => $this->GetObjectListDevices()
                 ]);
+                break;
+
+            case 'getMaps':
+                $this->ReturnResult($request['id'], $this->ComputeMaps());
                 break;
 
             case 'getStatus':
@@ -532,6 +545,17 @@ class IRiS extends WebHookModule {
 
     }
 
+    private function GetObjectListFloors() {
+        $result = [];
+
+        foreach (json_decode($this->ReadPropertyString('Floors'), true) as $floor) {
+            unset($floor['map']);
+            $result[] = $floor;
+        }
+
+        return $result;
+    }
+
     private function GetObjectListDevices() {
         $result = [];
 
@@ -563,6 +587,18 @@ class IRiS extends WebHookModule {
             'type' => $type,
             'switchable' => $switchable
         ];
+    }
+
+    private function ComputeMaps() {
+        $maps = [];
+        foreach (json_decode($this->ReadPropertyString('Floors'), true) as $floor) {
+            $maps[] = [
+                'floor' => $floor['id'],
+                'map' => $floor['map']
+            ];
+        }
+
+        return $maps;
     }
 
     private function ComputeStatus($ids) {
