@@ -749,6 +749,8 @@ class IRiS extends WebHookModule {
     }
 
     private function ComputeStatusOfRoom($roomID) {
+        $status = [];
+
         $smokeValues = [];
 
         foreach (json_decode($this->ReadPropertyString('SmokeDetectors'), true) as $smokeDetector) {
@@ -767,11 +769,29 @@ class IRiS extends WebHookModule {
         }
 
         if ($averageSmoke > 0.5) {
-            return 'smoked';
+            $status[] = 'Smoked';
         }
-        else {
-            return 'fine';
+
+        $temperatureValues = [];
+
+        foreach (json_decode($this->ReadPropertyString('TemperatureSensors'), true) as $temperatureSensor) {
+            if (($temperatureSensor['room'] == $roomID) && IPS_VariableExists($temperatureSensor['variableID'])) {
+                $temperatureValues[] = GetValue($temperatureSensor['variableID']);
+            }
         }
+
+        $maxTemperature = 0;
+        foreach ($temperatureValues as $temperatureValue) {
+            if ($temperatureValue > $maxTemperature) {
+                $maxTemperature = $temperatureValue;
+            }
+        }
+
+        if ($maxTemperature > 100) {
+            $status[] = 'Burning';
+        }
+
+        return $status;
     }
 
     private function GetPercentageValue($variableID)
