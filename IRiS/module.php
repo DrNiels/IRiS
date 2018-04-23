@@ -22,6 +22,7 @@ class IRiS extends WebHookModule {
         $this->RegisterPropertyString("Rooms", "[]");
         $this->RegisterPropertyString("Persons", "[]");
         $this->RegisterPropertyString("SmokeDetectors", "[]");
+        $this->RegisterPropertyString("TemperatureSensors", "[]");
         $this->RegisterPropertyString("MotionSensors", "[]");
         $this->RegisterPropertyString("Doors", "[]");
         
@@ -323,6 +324,61 @@ class IRiS extends WebHookModule {
                 ],
                 [
                     'type' => 'List',
+                    'name' => 'TemperatureSensors',
+                    'caption' => 'Temperature Sensors',
+                    'add' => true,
+                    'delete' => true,
+                    'columns' => [
+                        [
+                            'label' => 'ID',
+                            'name' => 'id',
+                            'width' => '75px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ],
+                        [
+                            'label' => 'Room',
+                            'name' => 'room',
+                            'width' => '200px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ],
+                        [
+                            'label' => 'Variable',
+                            'name' => 'variableID',
+                            'width' => 'auto',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectVariable'
+                            ]
+                        ],
+                        [
+                            'label' => 'Map Position X',
+                            'name' => 'x',
+                            'width' => '130px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ],
+                        [
+                            'label' => 'Map Position Y',
+                            'name' => 'y',
+                            'width' => '130px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ]
+                    ],
+                    'values' => []
+                ],
+                [
+                    'type' => 'List',
                     'name' => 'MotionSensors',
                     'caption' => 'Motion Sensors',
                     'add' => true,
@@ -567,6 +623,10 @@ class IRiS extends WebHookModule {
             $result[] = $this->ComputeDeviceInformation($motionSensor, 'MotionSensor', false);
         }
 
+        foreach (json_decode($this->ReadPropertyString('TemperatureSensors'), true) as $temperatureSensor) {
+            $result[] = $this->ComputeDeviceInformation($temperatureSensor, 'TemperatureSensor', false);
+        }
+
         foreach (json_decode($this->ReadPropertyString('Doors'), true) as $door) {
             $variable = IPS_GetVariable($door['variableID']);
             $switchable = ($variable['VariableCustomAction'] > 10000) || ($variable['VariableAction'] > 10000);
@@ -644,6 +704,17 @@ class IRiS extends WebHookModule {
                         ]
                     ];
                 }
+            }
+        }
+
+        foreach (json_decode($this->ReadPropertyString('TemperatureSensors'), true) as $temperatureSensor) {
+            if (((sizeof($ids) == 0) || in_array($temperatureSensor['id'], $ids)) && IPS_VariableExists($temperatureSensor['variableID'])) {
+                $devices[] = [
+                    'id' => $temperatureSensor['id'],
+                    'value' => [
+                        'temperature' => GetValue($temperatureSensor['variableID'])
+                    ]
+                ];
             }
         }
 
