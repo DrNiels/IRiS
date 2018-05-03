@@ -523,6 +523,10 @@ class IRiS extends WebHookModule {
         }
 
         switch ($request['method']) {
+            case 'isAlarm':
+                $this->ReturnResult($request['id'], $this->ComputeAlarm());
+                break;
+
             case 'getGeneralInformation':
                 $this->ReturnResult($request['id'], [
                     'address' => $this->ReadPropertyString('Address'),
@@ -792,6 +796,17 @@ class IRiS extends WebHookModule {
         }
 
         return $status;
+    }
+
+    private function ComputeAlarm() {
+        foreach (json_decode($this->ReadPropertyString('Rooms'),true) as $room) {
+            $roomStatus = $this->ComputeStatusOfRoom($room['id']);
+            if (sizeof($roomStatus) > 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function GetPercentageValue($variableID)
