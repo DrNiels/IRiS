@@ -68,6 +68,7 @@ class IRiS extends WebHookModule {
                 [
                     'type' => 'List',
                     'name' => 'HeatingType',
+                    'rowCount' => 6,
                     'columns' => [
                         [
                             'caption' => 'Heating Type',
