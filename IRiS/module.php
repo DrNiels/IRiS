@@ -16,7 +16,7 @@ class IRiS extends WebHookModule {
         //You cannot use variables here. Just static values.
         $this->RegisterPropertyString("Address", "");
         $this->RegisterPropertyString("BuildingMaterial", "");
-        $this->RegisterPropertyString("HeatingType", "");
+        $this->RegisterPropertyString("HeatingType", "{}");
         $this->RegisterPropertyString("AlarmTypes", "[]");
 
         $this->RegisterPropertyString("Floors", "[]");
@@ -66,9 +66,49 @@ class IRiS extends WebHookModule {
                     'caption' => 'Building Material'
                 ],
                 [
-                    'type' => 'ValidationTextBox',
+                    'type' => 'List',
                     'name' => 'HeatingType',
-                    'caption' => 'Heating Type'
+                    'columns' => [
+                        [
+                            'caption' => 'Heating Type',
+                            'name' => 'heatingType',
+                            'width' => '150px'
+                        ],
+                        [
+                            'caption' => '',
+                            'name' => 'selected',
+                            'width' => '50px',
+                            'edit' => [
+                                'type' => 'CheckBox'
+                            ]
+                        ]
+                    ],
+                    'values' => [
+                        [
+                            'heatingType' => $this->Translate('Electric'),
+                            'selected' => false
+                        ],
+                        [
+                            'heatingType' => $this->Translate('Oil'),
+                            'selected' => false
+                        ],
+                        [
+                            'heatingType' => $this->Translate('Gas'),
+                            'selected' => false
+                        ],
+                        [
+                            'heatingType' => $this->Translate('Thermal'),
+                            'selected' => false
+                        ],
+                        [
+                            'heatingType' => $this->Translate('Pellets'),
+                            'selected' => false
+                        ],
+                        [
+                            'heatingType' => $this->Translate('Solar'),
+                            'selected' => false
+                        ]
+                    ]
                 ],
                 [
                     'type' => 'List',
@@ -532,7 +572,7 @@ class IRiS extends WebHookModule {
                 $this->ReturnResult($request['id'], [
                     'address' => $this->ReadPropertyString('Address'),
                     'buildingMaterial' => $this->ReadPropertyString('BuildingMaterial'),
-                    'heatingType' => $this->ReadPropertyString('HeatingType')
+                    'heatingType' => $this->ComputeHeatingType()
                 ]);
                 break;
 
@@ -639,6 +679,20 @@ class IRiS extends WebHookModule {
         }
 
         return $result;
+    }
+
+    private function ComputeHeatingType() {
+        $heatingTypes = json_decode($this->ReadPropertyString('HeatingType'), true);
+        $typeLabels = [ 'Electric', 'Oil', 'Gas', 'Thermal', 'Pellets', 'Solar'];
+        $returnValue = [];
+
+        for ($i = 0; $i < sizeof($heatingTypes); $i++) {
+            if ($heatingTypes[$i]['selected']) {
+                $returnValue[] = $typeLabels[$i];
+            }
+        }
+
+        return $returnValue;
     }
 
     private function ComputeDeviceInformation($value, $type, $switchable) {
