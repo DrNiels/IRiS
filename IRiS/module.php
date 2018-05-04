@@ -17,6 +17,7 @@ class IRiS extends WebHookModule {
         $this->RegisterPropertyString("Address", "");
         $this->RegisterPropertyString("BuildingMaterial", "");
         $this->RegisterPropertyString("HeatingType", "");
+        $this->RegisterPropertyString("AlarmTypes", "[]");
 
         $this->RegisterPropertyString("Floors", "[]");
         $this->RegisterPropertyString("Rooms", "[]");
@@ -799,14 +800,27 @@ class IRiS extends WebHookModule {
     }
 
     private function ComputeAlarm() {
-        foreach (json_decode($this->ReadPropertyString('Rooms'),true) as $room) {
-            $roomStatus = $this->ComputeStatusOfRoom($room['id']);
-            if (sizeof($roomStatus) > 0) {
-                return true;
+        $alarmTypes = json_decode($this->ReadPropertyString('AlarmTypes'));
+        if (!in_array('Fire', $alarmTypes)) {
+            foreach (json_decode($this->ReadPropertyString('Rooms'), true) as $room) {
+                $roomStatus = $this->ComputeStatusOfRoom($room['id']);
+                if (in_array('Smoked', $roomStatus) || in_array('Burning', $roomStatus)) {
+                    $alarmTypes[] = 'Fire';
+                    break;
+                }
             }
         }
 
-        return false;
+        IPS_SetProperty($this->InstanceID, 'AlarmTypes', json_encode($alarmTypes));
+        IPS_ApplyChanges($this->InstanceID);
+
+        $result = [
+            'alarm' => (sizeof($alarmTypes) > 0)
+        ];
+        if (sizeof($alarmTypes) > 0) {
+            $result['types'] = $alarmTypes;
+        }
+        return $result;
     }
 
     private function GetPercentageValue($variableID)
