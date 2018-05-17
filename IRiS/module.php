@@ -759,6 +759,8 @@ class IRiS extends WebHookModule {
                 if ($smokeValue !== null) {
                     $devices[] = [
                         'id' => $smokeDetector['id'],
+                        'lastUpdate' => IPS_GetVariable($smokeDetector['variableID'])['VariableUpdated'],
+                        'lastChange' => IPS_GetVariable($smokeDetector['variableID'])['VariableChanged'],
                         'value' => [
                             'smoke' => $smokeValue
                         ]
@@ -771,6 +773,8 @@ class IRiS extends WebHookModule {
             if (((sizeof($ids) == 0) || in_array($temperatureSensor['id'], $ids)) && IPS_VariableExists($temperatureSensor['variableID'])) {
                 $devices[] = [
                     'id' => $temperatureSensor['id'],
+                    'lastUpdate' => IPS_GetVariable($temperatureSensor['variableID'])['VariableUpdated'],
+                    'lastChange' => IPS_GetVariable($temperatureSensor['variableID'])['VariableChanged'],
                     'value' => [
                         'temperature' => GetValue($temperatureSensor['variableID'])
                     ]
@@ -782,6 +786,8 @@ class IRiS extends WebHookModule {
             if ((sizeof($ids) == 0) || in_array($door['id'], $ids)) {
                 $devices[] = [
                     'id' => $door['id'],
+                    'lastUpdate' => IPS_GetVariable($door['variableID'])['VariableUpdated'],
+                    'lastChange' => IPS_GetVariable($door['variableID'])['VariableChanged'],
                     'value' => [
                         'open' => GetValueBoolean($door['variableID'])
                     ]
@@ -793,9 +799,10 @@ class IRiS extends WebHookModule {
             if ((sizeof($ids) == 0) || in_array($motionSensor['id'], $ids)) {
                 $devices[] = [
                     'id' => $motionSensor['id'],
+                    'lastUpdate' => IPS_GetVariable($motionSensor['variableID'])['VariableUpdated'],
+                    'lastChange' => IPS_GetVariable($motionSensor['variableID'])['VariableChanged'],
                     'value' => [
-                        'motionDetected' => GetValueBoolean($motionSensor['variableID']),
-                        'lastUpdate' => IPS_GetVariable($motionSensor['variableID'])['VariableUpdated']
+                        'motionDetected' => GetValueBoolean($motionSensor['variableID'])
                     ]
                 ];
             }
