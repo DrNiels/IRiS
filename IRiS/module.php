@@ -449,8 +449,11 @@ class IRiS extends WebHookModule {
                             'caption' => 'Room',
                             'name' => 'room',
                             'width' => '200px',
-                            'add' => '',
-                            'save' => true
+                            'add' => $roomAdd,
+                            'edit' => [
+                                'type' => 'Select',
+                                'options' => $roomOptions
+                            ]
                         ],
                         [
                             'caption' => 'Variable',
