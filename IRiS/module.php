@@ -38,21 +38,63 @@ class IRiS extends WebHookModule {
     public function ApplyChanges(){
         //Never delete this line!
         parent::ApplyChanges();
+
+        $this->FillIDs();
     }
     
     public function GetConfigurationForm() {
         $cmpFloors = function($first, $second) {
-            return ($first->level > $second->level) ? -1 : 1;
+            return ($first['level'] > $second['level']) ? -1 : 1;
         };
-        $floors = json_decode($this->ReadPropertyString('Floors'));
+        $floors = json_decode($this->ReadPropertyString('Floors'), true);
         usort($floors, $cmpFloors);
         $floorOptions = [];
         foreach ($floors as $floor) {
             $floorOptions[] = [
-                'label' => $floor->name,
-                'value' => $floor->id
+                'caption' => $floor['name'],
+                'value' => intval($floor['id'])
             ];
         }
+        $floorAdd = 0;
+        if (sizeof($floorOptions) > 0) {
+            $floorAdd = $floorOptions[0]['value'];
+        }
+
+        $cmpRooms = function($first, $second) use ($floors) {
+            $firstLevel = 0;
+            $secondLevel = 0;
+            foreach ($floors as $floor) {
+                if (intval($floor['id']) == $first['floor']) {
+                    $firstLevel = $floor['level'];
+                }
+                if (intval($floor['id']) == $second['floor']) {
+                    $secondLevel = $floor['level'];
+                }
+            }
+            if ($firstLevel > $secondLevel) {
+                return -1;
+            }
+            elseif ($firstLevel < $secondLevel) {
+                return 1;
+            }
+            else {
+                return strcmp($first['name'], $second['name']);
+            }
+        };
+        $rooms = json_decode($this->ReadPropertyString('Rooms'), true);
+        usort($rooms, $cmpRooms);
+        $roomOptions = [];
+        foreach ($rooms as $room) {
+            $roomOptions[] = [
+                'caption' => $room['name'],
+                'value' => intval($room['id'])
+            ];
+        }
+        $roomAdd = 0;
+        if (sizeof($roomOptions) > 0) {
+            $roomAdd = $roomOptions[0]['value'];
+        }
+
         return json_encode([
             'elements' => [
                 [
@@ -61,9 +103,27 @@ class IRiS extends WebHookModule {
                     'caption' => 'Address'
                 ],
                 [
-                    'type' => 'ValidationTextBox',
+                    'type' => 'Select',
                     'name' => 'BuildingMaterial',
-                    'caption' => 'Building Material'
+                    'caption' => 'Building Material',
+                    'options' => [
+                        [
+                            'caption' => 'Stone',
+                            'value' => 'Stone'
+                        ],
+                        [
+                            'caption' => 'Timber',
+                            'value' => 'Timber'
+                        ],
+                        [
+                            'caption' => 'Loam and Straw',
+                            'value' => 'LoamStraw'
+                        ],
+                        [
+                            'caption' => 'Steel',
+                            'value' => 'Steel'
+                        ]
+                    ]
                 ],
                 [
                     'type' => 'List',
@@ -123,16 +183,14 @@ class IRiS extends WebHookModule {
                     ],
                     'columns' => [
                         [
-                            'label' => 'ID',
+                            'caption' => 'ID',
                             'name' => 'id',
                             'width' => '75px',
-                            'add' => 0,
-                            'edit' => [
-                                'type' => 'NumberSpinner'
-                            ]
+                            'add' => '',
+                            'save' => true
                         ],
                         [
-                            'label' => 'Level',
+                            'caption' => 'Level',
                             'name' => 'level',
                             'width' => '100px',
                             'add' => 0,
@@ -141,7 +199,7 @@ class IRiS extends WebHookModule {
                             ]
                         ],
                         [
-                            'label' => 'Name',
+                            'caption' => 'Name',
                             'name' => 'name',
                             'width' => 'auto',
                             'add' => '',
@@ -150,16 +208,38 @@ class IRiS extends WebHookModule {
                             ]
                         ],
                         [
-                            'label' => 'Type',
+                            'caption' => 'Type',
                             'name' => 'type',
-                            'width' => '100px',
-                            'add' => '',
+                            'width' => '200px',
+                            'add' => 'GroundFloor',
                             'edit' => [
-                                'type' => 'ValidationTextBox'
+                                'type' => 'Select',
+                                'options' => [
+                                    [
+                                        'caption' => 'Basement',
+                                        'value' => 'Basement'
+                                    ],
+                                    [
+                                        'caption' => 'Ground Floor',
+                                        'value' => 'GroundFloor'
+                                    ],
+                                    [
+                                        'caption' => 'Upper Floor',
+                                        'value' => 'UpperFloor'
+                                    ],
+                                    [
+                                        'caption' => 'Attic',
+                                        'value' => 'Attic'
+                                    ],
+                                    [
+                                        'caption' => 'Misc',
+                                        'value' => 'Misc'
+                                    ]
+                                ]
                             ]
                         ],
                         [
-                            'label' => 'Map',
+                            'caption' => 'Map',
                             'name' => 'map',
                             'width' => '100px',
                             'add' => '',
@@ -183,26 +263,24 @@ class IRiS extends WebHookModule {
                     ],
                     'columns' => [
                         [
-                            'label' => 'ID',
+                            'caption' => 'ID',
                             'name' => 'id',
                             'width' => '75px',
-                            'add' => 0,
-                            'edit' => [
-                                'type' => 'NumberSpinner'
-                            ]
+                            'add' => '',
+                            'save' => true
                         ],
                         [
-                            'label' => 'Floor',
+                            'caption' => 'Floor',
                             'name' => 'floor',
                             'width' => '200px',
-                            'add' => 0,
+                            'add' => $floorAdd,
                             'edit' => [
                                 'type' => 'Select',
                                 'options' => $floorOptions
                             ]
                         ],
                         [
-                            'label' => 'Name',
+                            'caption' => 'Name',
                             'name' => 'name',
                             'width' => 'auto',
                             'add' => '',
@@ -211,12 +289,58 @@ class IRiS extends WebHookModule {
                             ]
                         ],
                         [
-                            'label' => 'Type',
+                            'caption' => 'Type',
                             'name' => 'type',
                             'width' => '200px',
-                            'add' => '',
+                            'add' => 'LivingRoom',
                             'edit' => [
-                                'type' => 'ValidationTextBox'
+                                'type' => 'Select',
+                                'options' => [
+                                    [
+                                        'caption' => 'Kitchen',
+                                        'value' => 'Kitchen'
+                                    ],
+                                    [
+                                        'caption' => 'Living Room',
+                                        'value' => 'LivingRoom'
+                                    ],
+                                    [
+                                        'caption' => 'Bed Room',
+                                        'value' => 'BedRoom'
+                                    ],
+                                    [
+                                        'caption' => 'Childs Room',
+                                        'value' => 'ChildsRoom'
+                                    ],
+                                    [
+                                        'caption' => 'Bath Room',
+                                        'value' => 'BathRoom'
+                                    ],
+                                    [
+                                        'caption' => 'Store Room',
+                                        'value' => 'StoreRoom'
+                                    ],
+                                    [
+                                        'caption' => 'Play Room',
+                                        'value' => 'PlayRoom'
+                                    ],
+                                    [
+                                        'caption' => 'Work Room',
+                                        'value' => 'WorkRoom'
+                                    ],
+                                    [
+                                        'caption' => 'Basement Room',
+                                        'value' => 'BasementRoom'
+                                    ],
+                                    [
+                                        'caption' => 'Garage',
+                                        'value' => 'Garage'
+                                    ],
+                                    [
+                                        'caption' => 'Misc',
+                                        'value' => 'Misc'
+                                    ]
+                                ]
                             ]
                         ]
                     ],
@@ -230,16 +354,14 @@ class IRiS extends WebHookModule {
                     'delete' => true,
                     'columns' => [
                         [
-                            'label' => 'ID',
+                            'caption' => 'ID',
                             'name' => 'id',
                             'width' => '75px',
-                            'add' => 0,
-                            'edit' => [
-                                'type' => 'NumberSpinner'
-                            ]
+                            'add' => '',
+                            'save' => true
                         ],
                         [
-                            'label' => 'Name',
+                            'caption' => 'Name',
                             'name' => 'name',
                             'width' => 'auto',
                             'add' => '',
@@ -248,16 +370,16 @@ class IRiS extends WebHookModule {
                             ]
                         ],
                         [
-                            'label' => 'Birthday',
+                            'caption' => 'Birthday',
                             'name' => 'birthday',
                             'width' => '200px',
-                            'add' => 0,
+                            'add' => '{ "year": 0, "month": 0, "day": 0}',
                             'edit' => [
-                                'type' => 'NumberSpinner'
+                                'type' => 'SelectDate'
                             ]
                         ],
                         [
-                            'label' => 'Diseases',
+                            'caption' => 'Diseases',
                             'name' => 'diseases',
                             'width' => '250px',
                             'add' => '',
@@ -266,7 +388,7 @@ class IRiS extends WebHookModule {
                             ]
                         ],
                         [
-                            'label' => 'Core Data',
+                            'caption' => 'Core Data',
                             'name' => 'coreData',
                             'width' => '100px',
                             'add' => true,
@@ -275,7 +397,7 @@ class IRiS extends WebHookModule {
                             ]
                         ],
                         [
-                            'label' => 'Present?',
+                            'caption' => 'Present?',
                             'name' => 'present',
                             'width' => '200px',
                             'add' => 'Unknown',
@@ -283,22 +405,22 @@ class IRiS extends WebHookModule {
                                 'type' => 'Select',
                                 'options' => [
                                     [
-                                        'label' => 'Present',
+                                        'caption' => 'Present',
                                         'value' => 'Present'
                                     ],
                                     [
-                                        'label' => 'Not Present',
+                                        'caption' => 'Not Present',
                                         'value' => 'NotPresent'
                                     ],
                                     [
-                                        'label' => 'Unknown',
+                                        'caption' => 'Unknown',
                                         'value' => 'Unknown'
                                     ]
                                 ]
                             ]
                         ],
                         [
-                            'label' => 'Current Location (Room ID)',
+                            'caption' => 'Current Location (Room ID)',
                             'name' => 'currentLocation',
                             'width' => '250px',
                             'add' => 0,
@@ -317,25 +439,21 @@ class IRiS extends WebHookModule {
                     'delete' => true,
                     'columns' => [
                         [
-                            'label' => 'ID',
+                            'caption' => 'ID',
                             'name' => 'id',
                             'width' => '75px',
-                            'add' => 0,
-                            'edit' => [
-                                'type' => 'NumberSpinner'
-                            ]
+                            'add' => '',
+                            'save' => true
                         ],
                         [
-                            'label' => 'Room',
+                            'caption' => 'Room',
                             'name' => 'room',
                             'width' => '200px',
-                            'add' => 0,
-                            'edit' => [
-                                'type' => 'NumberSpinner'
-                            ]
+                            'add' => '',
+                            'save' => true
                         ],
                         [
-                            'label' => 'Variable',
+                            'caption' => 'Variable',
                             'name' => 'variableID',
                             'width' => 'auto',
                             'add' => 0,
@@ -344,7 +462,7 @@ class IRiS extends WebHookModule {
                             ]
                         ],
                         [
-                            'label' => 'Map Position X',
+                            'caption' => 'Map Position X',
                             'name' => 'x',
                             'width' => '130px',
                             'add' => 0,
@@ -353,7 +471,7 @@ class IRiS extends WebHookModule {
                             ]
                         ],
                         [
-                            'label' => 'Map Position Y',
+                            'caption' => 'Map Position Y',
                             'name' => 'y',
                             'width' => '130px',
                             'add' => 0,
@@ -372,34 +490,31 @@ class IRiS extends WebHookModule {
                     'delete' => true,
                     'columns' => [
                         [
-                            'label' => 'ID',
+                            'caption' => 'ID',
                             'name' => 'id',
                             'width' => '75px',
-                            'add' => 0,
-                            'edit' => [
-                                'type' => 'NumberSpinner'
-                            ]
+                            'add' => '',
+                            'save' => true
                         ],
                         [
-                            'label' => 'Room',
+                            'caption' => 'Room',
                             'name' => 'room',
                             'width' => '200px',
-                            'add' => 0,
+                            'add' => $roomAdd,
                             'edit' => [
-                                'type' => 'NumberSpinner'
+                                'type' => 'Select',
+                                'options' => $roomOptions
                             ]
                         ],
                         [
-                            'label' => 'Variable',
+                            'caption' => 'Variable',
                             'name' => 'variableID',
                             'width' => 'auto',
-                            'add' => 0,
-                            'edit' => [
-                                'type' => 'SelectVariable'
-                            ]
+                            'add' => '',
+                            'save' => true
                         ],
                         [
-                            'label' => 'Map Position X',
+                            'caption' => 'Map Position X',
                             'name' => 'x',
                             'width' => '130px',
                             'add' => 0,
@@ -408,7 +523,7 @@ class IRiS extends WebHookModule {
                             ]
                         ],
                         [
-                            'label' => 'Map Position Y',
+                            'caption' => 'Map Position Y',
                             'name' => 'y',
                             'width' => '130px',
                             'add' => 0,
@@ -427,25 +542,24 @@ class IRiS extends WebHookModule {
                     'delete' => true,
                     'columns' => [
                         [
-                            'label' => 'ID',
+                            'caption' => 'ID',
                             'name' => 'id',
                             'width' => '75px',
-                            'add' => 0,
-                            'edit' => [
-                                'type' => 'NumberSpinner'
-                            ]
+                            'add' => '',
+                            'save' => true
                         ],
                         [
-                            'label' => 'Room',
+                            'caption' => 'Room',
                             'name' => 'room',
                             'width' => '200px',
-                            'add' => 0,
+                            'add' => $roomAdd,
                             'edit' => [
-                                'type' => 'NumberSpinner'
+                                'type' => 'Select',
+                                'options' => $roomOptions
                             ]
                         ],
                         [
-                            'label' => 'Variable',
+                            'caption' => 'Variable',
                             'name' => 'variableID',
                             'width' => 'auto',
                             'add' => 0,
@@ -454,7 +568,7 @@ class IRiS extends WebHookModule {
                             ]
                         ],
                         [
-                            'label' => 'Map Position X',
+                            'caption' => 'Map Position X',
                             'name' => 'x',
                             'width' => '130px',
                             'add' => 0,
@@ -463,7 +577,7 @@ class IRiS extends WebHookModule {
                             ]
                         ],
                         [
-                            'label' => 'Map Position Y',
+                            'caption' => 'Map Position Y',
                             'name' => 'y',
                             'width' => '130px',
                             'add' => 0,
@@ -482,25 +596,24 @@ class IRiS extends WebHookModule {
                     'delete' => true,
                     'columns' => [
                         [
-                            'label' => 'ID',
+                            'caption' => 'ID',
                             'name' => 'id',
                             'width' => '75px',
-                            'add' => 0,
-                            'edit' => [
-                                'type' => 'NumberSpinner'
-                            ]
+                            'add' => '',
+                            'save' => true
                         ],
                         [
-                            'label' => 'Room',
+                            'caption' => 'Room',
                             'name' => 'room',
                             'width' => '200px',
-                            'add' => 0,
+                            'add' => $roomAdd,
                             'edit' => [
-                                'type' => 'NumberSpinner'
+                                'type' => 'Select',
+                                'options' => $roomOptions
                             ]
                         ],
                         [
-                            'label' => 'Variable',
+                            'caption' => 'Variable',
                             'name' => 'variableID',
                             'width' => 'auto',
                             'add' => 0,
@@ -509,7 +622,7 @@ class IRiS extends WebHookModule {
                             ]
                         ],
                         [
-                            'label' => 'Map Position X',
+                            'caption' => 'Map Position X',
                             'name' => 'x',
                             'width' => '130px',
                             'add' => 0,
@@ -518,7 +631,7 @@ class IRiS extends WebHookModule {
                             ]
                         ],
                         [
-                            'label' => 'Map Position Y',
+                            'caption' => 'Map Position Y',
                             'name' => 'y',
                             'width' => '130px',
                             'add' => 0,
@@ -537,7 +650,7 @@ class IRiS extends WebHookModule {
         $persons = json_decode($this->ReadPropertyString('Persons'), true);
 
         for ($i = 0; $i < sizeof($persons); $i++) {
-            if ($persons[$i]['id'] == $personID) {
+            if (intval($persons[$i]['id']) == $personID) {
                 $persons[$i]['currentLocation'] = $newRoomPosition;
                 break;
             }
@@ -581,7 +694,7 @@ class IRiS extends WebHookModule {
                 $this->ReturnResult($request['id'], [
                     'persons' => $this->GetObjectListPersons(),
                     'floors' => $this->GetObjectListFloors(),
-                    'rooms' => json_decode($this->ReadPropertyString('Rooms'), true),
+                    'rooms' => $this->GetObjectListRooms(),
                     'devices' => $this->GetObjectListDevices()
                 ]);
                 break;
@@ -599,7 +712,7 @@ class IRiS extends WebHookModule {
                 break;
 
             case 'switchDevice':
-                $this->ReturnResult($request['id'], $this->SwitchVariable($request['params']['id'], $request['params']['value']));
+                $this->ReturnResult($request['id'], $this->SwitchVariable(intval($request['params']['id']), $request['params']['value']));
                 break;
 
             default:
@@ -625,12 +738,19 @@ class IRiS extends WebHookModule {
             unset($person['currentLocation']);
             unset($person['present']);
 
+            $person['id'] = intval($person['id']);
+
             if ($person['name'] == '') {
                 unset($person['name']);
             }
 
-            if ($person['birthday'] == 0) {
+            $birthdayData = json_decode($person['birthday'], true);
+            $birthday = mktime(0,0,0,$birthdayData['month'], $birthdayData['day'], $birthdayData['year']);
+            if ($birthday == 0) {
                 unset($person['birthday']);
+            }
+            else {
+                $person['birthday'] = $birthday;
             }
 
             if ($person['diseases'] == '') {
@@ -652,7 +772,19 @@ class IRiS extends WebHookModule {
 
         foreach (json_decode($this->ReadPropertyString('Floors'), true) as $floor) {
             unset($floor['map']);
+            $floor['id'] = intval($floor['id']);
             $result[] = $floor;
+        }
+
+        return $result;
+    }
+
+    private function GetObjectListRooms() {
+        $result = [];
+
+        foreach (json_decode($this->ReadPropertyString('Rooms'), true) as $room) {
+            $room['id'] = intval($room['id']);
+            $result[] = $room;
         }
 
         return $result;
@@ -698,7 +830,7 @@ class IRiS extends WebHookModule {
 
     private function ComputeDeviceInformation($value, $type, $switchable) {
         return [
-            'id' => $value['id'],
+            'id' => intval($value['id']),
             'room' => $value['room'],
             'position' => [
                 'x' => $value['x'],
@@ -713,7 +845,7 @@ class IRiS extends WebHookModule {
         $maps = [];
         foreach (json_decode($this->ReadPropertyString('Floors'), true) as $floor) {
             $maps[] = [
-                'floor' => $floor['id'],
+                'floor' => intval($floor['id']),
                 'map' => $floor['map']
             ];
         }
@@ -724,9 +856,9 @@ class IRiS extends WebHookModule {
     private function ComputeStatus($ids) {
         $persons = [];
         foreach (json_decode($this->ReadPropertyString('Persons'), true) as $person) {
-            if ((sizeof($ids) == 0) || in_array($person['id'], $ids)) {
+            if ((sizeof($ids) == 0) || in_array(intval($person['id']), $ids)) {
                 $newEntry = [
-                    'id' => $person['id'],
+                    'id' => intval($person['id']),
                     'present' => $person['present']
                 ];
                 if ($person['present'] == 'Present') {
@@ -744,9 +876,9 @@ class IRiS extends WebHookModule {
 
         $rooms = [];
         foreach (json_decode($this->ReadPropertyString('Rooms'), true) as $room) {
-            if ((sizeof($ids) == 0) || in_array($room['id'], $ids)) {
+            if ((sizeof($ids) == 0) || in_array(intval($room['id']), $ids)) {
                 $rooms[] = [
-                    'id' => $room['id'],
+                    'id' => intval($room['id']),
                     'status' => $this->ComputeStatusOfRoom($room['id'])
                 ];
             }
@@ -754,25 +886,22 @@ class IRiS extends WebHookModule {
 
         $devices = [];
         foreach (json_decode($this->ReadPropertyString('SmokeDetectors'), true) as $smokeDetector) {
-            if ((sizeof($ids) == 0) || in_array($smokeDetector['id'], $ids)) {
-                $smokeValue = $this->GetPercentageValue($smokeDetector['variableID']);
-                if ($smokeValue !== null) {
-                    $devices[] = [
-                        'id' => $smokeDetector['id'],
-                        'lastUpdate' => IPS_GetVariable($smokeDetector['variableID'])['VariableUpdated'],
-                        'lastChange' => IPS_GetVariable($smokeDetector['variableID'])['VariableChanged'],
-                        'value' => [
-                            'smoke' => $smokeValue
-                        ]
-                    ];
-                }
+            if ((sizeof($ids) == 0) || in_array(intval($smokeDetector['id']), $ids)) {
+                $devices[] = [
+                    'id' => intval($smokeDetector['id']),
+                    'lastUpdate' => IPS_GetVariable($smokeDetector['variableID'])['VariableUpdated'],
+                    'lastChange' => IPS_GetVariable($smokeDetector['variableID'])['VariableChanged'],
+                    'value' => [
+                        'smoke' => GetValue($smokeDetector['variableID']) ? 1.0 : 0.0
+                    ]
+                ];
             }
         }
 
         foreach (json_decode($this->ReadPropertyString('TemperatureSensors'), true) as $temperatureSensor) {
-            if (((sizeof($ids) == 0) || in_array($temperatureSensor['id'], $ids)) && IPS_VariableExists($temperatureSensor['variableID'])) {
+            if (((sizeof($ids) == 0) || in_array(intval($temperatureSensor['id']), $ids)) && IPS_VariableExists($temperatureSensor['variableID'])) {
                 $devices[] = [
-                    'id' => $temperatureSensor['id'],
+                    'id' => intval($temperatureSensor['id']),
                     'lastUpdate' => IPS_GetVariable($temperatureSensor['variableID'])['VariableUpdated'],
                     'lastChange' => IPS_GetVariable($temperatureSensor['variableID'])['VariableChanged'],
                     'value' => [
@@ -783,9 +912,9 @@ class IRiS extends WebHookModule {
         }
 
         foreach (json_decode($this->ReadPropertyString('Doors'), true) as $door) {
-            if ((sizeof($ids) == 0) || in_array($door['id'], $ids)) {
+            if ((sizeof($ids) == 0) || in_array(intval($door['id']), $ids)) {
                 $devices[] = [
-                    'id' => $door['id'],
+                    'id' => intval($door['id']),
                     'lastUpdate' => IPS_GetVariable($door['variableID'])['VariableUpdated'],
                     'lastChange' => IPS_GetVariable($door['variableID'])['VariableChanged'],
                     'value' => [
@@ -796,9 +925,9 @@ class IRiS extends WebHookModule {
         }
 
         foreach (json_decode($this->ReadPropertyString('MotionSensors'), true) as $motionSensor) {
-            if ((sizeof($ids) == 0) || in_array($motionSensor['id'], $ids)) {
+            if ((sizeof($ids) == 0) || in_array(intval($motionSensor['id']), $ids)) {
                 $devices[] = [
-                    'id' => $motionSensor['id'],
+                    'id' => intval($motionSensor['id']),
                     'lastUpdate' => IPS_GetVariable($motionSensor['variableID'])['VariableUpdated'],
                     'lastChange' => IPS_GetVariable($motionSensor['variableID'])['VariableChanged'],
                     'value' => [
@@ -818,44 +947,18 @@ class IRiS extends WebHookModule {
     private function ComputeStatusOfRoom($roomID) {
         $status = [];
 
-        $smokeValues = [];
-
         foreach (json_decode($this->ReadPropertyString('SmokeDetectors'), true) as $smokeDetector) {
-            if ($smokeDetector['room'] == $roomID) {
-                $smokeValues[] = $this->GetPercentageValue($smokeDetector['variableID']);
+            if (($smokeDetector['room'] == $roomID) && IPS_VariableExists($smokeDetector['variableID']) && GetValue($smokeDetector['variableID'])) {
+                $status[] = 'Smoked';
+                break;
             }
         }
-
-        $averageSmoke = 0;
-        foreach ($smokeValues as $smokeValue) {
-            $averageSmoke += $smokeValue;
-        }
-
-        if (sizeof($smokeValues) > 0) {
-            $averageSmoke /= sizeOf($smokeValues);
-        }
-
-        if ($averageSmoke > 0.5) {
-            $status[] = 'Smoked';
-        }
-
-        $temperatureValues = [];
 
         foreach (json_decode($this->ReadPropertyString('TemperatureSensors'), true) as $temperatureSensor) {
-            if (($temperatureSensor['room'] == $roomID) && IPS_VariableExists($temperatureSensor['variableID'])) {
-                $temperatureValues[] = GetValue($temperatureSensor['variableID']);
+            if (($temperatureSensor['room'] == $roomID) && IPS_VariableExists($temperatureSensor['variableID']) && (GetValue($temperatureSensor['variableID']) > 100)) {
+                $status[] = 'Burning';
+                break;
             }
-        }
-
-        $maxTemperature = 0;
-        foreach ($temperatureValues as $temperatureValue) {
-            if ($temperatureValue > $maxTemperature) {
-                $maxTemperature = $temperatureValue;
-            }
-        }
-
-        if ($maxTemperature > 100) {
-            $status[] = 'Burning';
         }
 
         return $status;
@@ -865,7 +968,7 @@ class IRiS extends WebHookModule {
         $alarmTypes = json_decode($this->ReadPropertyString('AlarmTypes'));
         if (!in_array('Fire', $alarmTypes)) {
             foreach (json_decode($this->ReadPropertyString('Rooms'), true) as $room) {
-                $roomStatus = $this->ComputeStatusOfRoom($room['id']);
+                $roomStatus = $this->ComputeStatusOfRoom(intval($room['id']));
                 if (in_array('Smoked', $roomStatus) || in_array('Burning', $roomStatus)) {
                     $alarmTypes[] = 'Fire';
                     break;
@@ -883,39 +986,6 @@ class IRiS extends WebHookModule {
             $result['types'] = $alarmTypes;
         }
         return $result;
-    }
-
-    private function GetPercentageValue($variableID)
-    {
-        if (!IPS_VariableExists($variableID)) {
-            return null;
-        }
-        $targetVariable = IPS_GetVariable($variableID);
-
-        if ($targetVariable['VariableCustomProfile'] != '') {
-            $profileName = $targetVariable['VariableCustomProfile'];
-        } else {
-            $profileName = $targetVariable['VariableProfile'];
-        }
-
-        $profile = IPS_GetVariableProfile($profileName);
-
-        if (($profile['MaxValue'] - $profile['MinValue']) <= 0) {
-            return null;
-        }
-
-        $valueToPercent = function ($value) use ($profile) {
-            return (($value - $profile['MinValue']) / ($profile['MaxValue'] - $profile['MinValue']));
-        };
-
-        $value = $valueToPercent(GetValue($variableID));
-
-        // Revert value for reversed profile
-        if (preg_match('/\.Reversed$/', $profileName)) {
-            $value = 1 - $value;
-        }
-
-        return max(min($value, 1), 0);
     }
 
     private function SwitchVariable($irisID, $value) {
@@ -951,7 +1021,7 @@ class IRiS extends WebHookModule {
     private function GetVariableIDByIRISID($irisID) {
         foreach (["SmokeDetectors", "MotionSensors", "Doors"] as $property) {
             foreach (json_decode($this->ReadPropertyString($property), true) as $value) {
-                if ($value['id'] == $irisID) {
+                if (intval($value['id']) == $irisID) {
                     return $value['variableID'];
                 }
             }
@@ -959,6 +1029,42 @@ class IRiS extends WebHookModule {
 
         $this->SendDebug("IRiS - Error", "Variable for IRiS ID does not exist", 0);
         return 0;
+    }
+
+    private function FillIDs() {
+        $availableID = 0;
+        foreach(["Floors", "Rooms", "Persons", "SmokeDetectors", "MotionSensors", "Doors"] as $property) {
+            foreach (json_decode($this->ReadPropertyString($property), true) as $value) {
+                if ($value['id'] != '') {
+                    $availableID = max($availableID, intval($value['id']));
+                }
+            }
+        }
+        $availableID++; // AvailableID is now one more than the highest ID
+
+        $changed = false;
+        foreach(["Floors", "Rooms", "Persons", "SmokeDetectors", "MotionSensors", "Doors"] as $property) {
+            $update = false;
+            $data = json_decode($this->ReadPropertyString($property), true);
+            foreach ($data as &$value) {
+                if ($value['id'] == '') {
+                    $value['id'] = strval($availableID);
+                    $availableID++;
+                    $changed = true;
+                    $update = true;
+                }
+            }
+
+            if ($update) {
+                IPS_SetProperty($this->InstanceID, $property, json_encode($data));
+                $this->SendDebug('Setting property', $property . ' = ' . json_encode($data), 0);
+            }
+        }
+
+        if ($changed) {
+            $this->SendDebug('Fill IDs', 'Changed -> Apply Changes again', 0);
+            IPS_ApplyChanges($this->InstanceID);
+        }
     }
 }
 
