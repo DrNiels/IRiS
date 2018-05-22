@@ -387,7 +387,7 @@ class IRiS extends WebHookModule {
                 [
                     'type' => 'List',
                     'name' => 'Persons',
-                    'caption' => 'Persons (with Testing options)',
+                    'caption' => 'Persons',
                     'add' => true,
                     'delete' => true,
                     'columns' => [
@@ -423,47 +423,6 @@ class IRiS extends WebHookModule {
                             'add' => '',
                             'edit' => [
                                 'type' => 'ValidationTextBox'
-                            ]
-                        ],
-                        [
-                            'caption' => 'Core Data',
-                            'name' => 'coreData',
-                            'width' => '100px',
-                            'add' => true,
-                            'edit' => [
-                                'type' => 'CheckBox'
-                            ]
-                        ],
-                        [
-                            'caption' => 'Present?',
-                            'name' => 'present',
-                            'width' => '200px',
-                            'add' => 'Unknown',
-                            'edit' => [
-                                'type' => 'Select',
-                                'options' => [
-                                    [
-                                        'caption' => 'Present',
-                                        'value' => 'Present'
-                                    ],
-                                    [
-                                        'caption' => 'Not Present',
-                                        'value' => 'NotPresent'
-                                    ],
-                                    [
-                                        'caption' => 'Unknown',
-                                        'value' => 'Unknown'
-                                    ]
-                                ]
-                            ]
-                        ],
-                        [
-                            'caption' => 'Current Location (Room ID)',
-                            'name' => 'currentLocation',
-                            'width' => '250px',
-                            'add' => 0,
-                            'edit' => [
-                                'type' => 'NumberSpinner'
                             ]
                         ]
                     ],
@@ -693,7 +652,14 @@ class IRiS extends WebHookModule {
                 $this->ApplyProbabilityDecay($data[3]);
                 foreach (json_decode($this->ReadPropertyString('MotionSensors'), true) as $motionSensor) {
                     if ($motionSensor['variableID'] == $senderID) {
-                        if ($data[0]) {
+                        $sensorBlocked = false;
+                        foreach(json_decode($this->ReadPropertyString('SmokeDetectors'), true) as $smokeDetector) {
+                            if (($smokeDetector['room'] == $motionSensor['room']) && (GetValue($smokeDetector['variableID']))) {
+                                $sensorBlocked = true;
+                                break;
+                            }
+                        }
+                        if ($data[0] && !$sensorBlocked) {
                             $this->SendDebug('Motion Sensor', 'Activated', 0);
                             $freePersonID = 2000; // FIXME: For the time being, just start at 2000 to avoid overlap with other IDs
                             $personsInSameRoom = [];
@@ -916,7 +882,21 @@ class IRiS extends WebHookModule {
                 $person['diseases'] = explode(',', $person['diseases']);
             }
 
+            $person['coreData'] = true;
+
             $result[] = $person;
+        }
+
+        foreach(IPS_GetChildrenIDs($this->InstanceID) as $childID) {
+            // It's a variable that describes a person
+            if (IPS_VariableExists($childID) && (substr(IPS_GetObject($childID)['ObjectIdent'], 0, 6) == 'Person')) {
+                $personID = intval(substr(IPS_GetObject($childID)['ObjectIdent'], 6));
+
+                $result[] = [
+                    'id' => $personID,
+                    'coreData' => false
+                ];
+            }
         }
 
         return $result;
@@ -1010,23 +990,29 @@ class IRiS extends WebHookModule {
     }
 
     private function ComputeStatus($ids) {
+        $this->ApplyProbabilityDecay(time());
+
         $persons = [];
         foreach (json_decode($this->ReadPropertyString('Persons'), true) as $person) {
             if ((sizeof($ids) == 0) || in_array(intval($person['id']), $ids)) {
-                $newEntry = [
+                $persons[] = [
                     'id' => intval($person['id']),
-                    'present' => $person['present']
+                    'present' => 'Unknown'
                 ];
-                if ($person['present'] == 'Present') {
-                    $newEntry['likelyPositions'] = [
-                        [
-                            'room' => $person['currentLocation'],
-                            'probability' => 0.9
-                        ]
-                    ];
-                }
+            }
+        }
 
-                $persons[] = $newEntry;
+        foreach(IPS_GetChildrenIDs($this->InstanceID) as $childID) {
+            // It's a variable that describes a person
+            if (IPS_VariableExists($childID) && (substr(IPS_GetObject($childID)['ObjectIdent'], 0, 6) == 'Person')) {
+                $personID = intval(substr(IPS_GetObject($childID)['ObjectIdent'], 6));
+                $personData = json_decode(GetValue($this->GetIDForIdent('Person' . strval($personID))), true);
+
+                $persons[] = [
+                    'id' => $personID,
+                    'present' => 'Present',
+                    'likelyPositions' => $personData
+                ];
             }
         }
 
@@ -1232,17 +1218,28 @@ class IRiS extends WebHookModule {
                 $this->SendDebug('Propability Decay - Person Data', json_encode($personData), 0);
                 foreach($personData as &$likelyPosition) {
                     $lastMotionSensorChange = 0;
-                    $motionSensorActive = false;
-                    foreach (json_decode($this->ReadPropertyString('MotionSensors'), true) as $motionSensor) {
-                        if ($motionSensor['room'] == $likelyPosition['room']) {
-                            if (GetValue($motionSensor['variableID'])) {
-                                $motionSensorActive = true;
+                    $updateProbability = true;
+
+                    foreach (json_decode($this->ReadPropertyString('SmokeDetectors'), true) as $smokeDetector) {
+                        if ($smokeDetector['room'] == $likelyPosition['room']) {
+                            if (GetValue($smokeDetector['variableID'])) {
+                                $updateProbability = false;
                             }
-                            $lastMotionSensorChange = max($lastMotionSensorChange, IPS_GetVariable($motionSensor['variableID'])['VariableChanged']);
                         }
                     }
 
-                    if (!$motionSensorActive) {
+                    if ($updateProbability) {
+                        foreach (json_decode($this->ReadPropertyString('MotionSensors'), true) as $motionSensor) {
+                            if ($motionSensor['room'] == $likelyPosition['room']) {
+                                if (GetValue($motionSensor['variableID'])) {
+                                    $updateProbability = false;
+                                }
+                                $lastMotionSensorChange = max($lastMotionSensorChange, IPS_GetVariable($motionSensor['variableID'])['VariableChanged']);
+                            }
+                        }
+                    }
+
+                    if ($updateProbability) {
                         $this->SendDebug('Propability Decay - Last Change', $lastMotionSensorChange, 0);
                         $likelyPosition['probability'] -= (($timestamp - $lastMotionSensorChange) / self::DECAY_PROBABILITY_MOTION) * 0.01;
                     }
