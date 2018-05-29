@@ -1187,7 +1187,7 @@ class IRiS extends WebHookModule {
         $availableID++; // AvailableID is now one more than the highest ID
 
         $changed = false;
-        foreach(["Floors", "Rooms", "Persons", "SmokeDetectors", "MotionSensors", "Doors"] as $property) {
+        foreach(["Floors", "Rooms", "Persons", "SmokeDetectors", "TemperatureSensors", "MotionSensors", "Doors"] as $property) {
             $update = false;
             $data = json_decode($this->ReadPropertyString($property), true);
             foreach ($data as &$value) {
