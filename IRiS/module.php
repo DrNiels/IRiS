@@ -510,8 +510,10 @@ class IRiS extends WebHookModule {
                             'caption' => 'Variable',
                             'name' => 'variableID',
                             'width' => 'auto',
-                            'add' => '',
-                            'save' => true
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectVariable'
+                            ]
                         ],
                         [
                             'caption' => 'Map Position X',
