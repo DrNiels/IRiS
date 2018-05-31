@@ -15,9 +15,7 @@ class IRiS extends WebHookModule {
     public function Create(){
         //Never delete this line!
         parent::Create();
-        
-        //These lines are parsed on Symcon Startup or Instance creation
-        //You cannot use variables here. Just static values.
+
         $this->RegisterPropertyString("Address", "");
         $this->RegisterPropertyString("BuildingMaterial", "");
         $this->RegisterPropertyString("HeatingType", "{}");
@@ -31,7 +29,12 @@ class IRiS extends WebHookModule {
         $this->RegisterPropertyString("TemperatureSensors", "[]");
         $this->RegisterPropertyString("MotionSensors", "[]");
         $this->RegisterPropertyString("Doors", "[]");
-        
+
+        $variableID = $this->RegisterVariableString("DetectedPersons", $this->Translate("Detected Persons"), "", 0);
+
+        if (GetValueString($variableID) == '') {
+            SetValueString($variableID, '{}');
+        }
     }
 
     public function Destroy(){
@@ -699,28 +702,23 @@ class IRiS extends WebHookModule {
                                 $freePersonID = 2000; // FIXME: For the time being, just start at 2000 to avoid overlap with other IDs
                                 $personsInSameRoom = [];
                                 $personsInNeighboringRooms = [];
+                                $detectedPersons = json_decode(GetValue($this->GetIDForIdent('DetectedPersons')), true);
 
+                                foreach ($detectedPersons as $personIDString => $personData) {
+                                    $personID = intval($personIDString);
+                                    if ($freePersonID <= $personID) {
+                                        $freePersonID = $personID + 1;
+                                    }
 
-                                foreach (IPS_GetChildrenIDs($this->InstanceID) as $childID) {
-                                    // It's a variable that describes a person
-                                    if (IPS_VariableExists($childID) && (substr(IPS_GetObject($childID)['ObjectIdent'], 0, 6) == 'Person')) {
-                                        $personID = intval(substr(IPS_GetObject($childID)['ObjectIdent'], 6));
-                                        if ($freePersonID <= $personID) {
-                                            $freePersonID = $personID + 1;
+                                    foreach ($personData as $likelyPosition) {
+                                        if (($likelyPosition['room'] == $motionSensor['room']) && !in_array($personID, $personsInSameRoom)) {
+                                            $this->SendDebug('Motion Sensor', 'Detected in same room', 0);
+                                            $personsInSameRoom[] = $personID;
                                         }
 
-                                        $personData = json_decode(GetValue($this->GetIDForIdent('Person' . strval($personID))), true);
-                                        $this->SendDebug('Motion Sensor - Person Data', json_encode($personData), 0);
-                                        foreach ($personData as $likelyPosition) {
-                                            if (($likelyPosition['room'] == $motionSensor['room']) && !in_array($personID, $personsInSameRoom)) {
-                                                $this->SendDebug('Motion Sensor', 'Detected in same room', 0);
-                                                $personsInSameRoom[] = $personID;
-                                            }
-
-                                            if (in_array($likelyPosition['room'], $neighboringRooms) && !in_array($personID, $personsInSameRoom)) {
-                                                $this->SendDebug('Motion Sensor', 'Detected in neighboring room', 0);
-                                                $personsInNeighboringRooms[] = $personID;
-                                            }
+                                        if (in_array($likelyPosition['room'], $neighboringRooms) && !in_array($personID, $personsInSameRoom)) {
+                                            $this->SendDebug('Motion Sensor', 'Detected in neighboring room', 0);
+                                            $personsInNeighboringRooms[] = $personID;
                                         }
                                     }
                                 }
@@ -729,76 +727,57 @@ class IRiS extends WebHookModule {
                                 if (sizeof($personsInSameRoom) > 0) {
                                     $this->SendDebug('Motion Sensor', 'Persons in same room', 0);
                                     foreach ($personsInSameRoom as $personID) {
-                                        $personData = json_decode(GetValue($this->GetIDForIdent('Person' . strval($personID))), true);
-                                        for ($i = 0; $i < sizeof($personData); $i++) {
-                                            if ($personData[$i]['room'] == $motionSensor['room']) {
-                                                $this->SetBuffer('previousLocation' . strval($personID) . '_' . strval($i), json_encode([
-                                                    'room' => $personData[$i]['room'],
-                                                    'confirmation' => $personData[$i]['lastConfirmation']
-                                                ]));
-                                                $personData[$i]['probability'] = self::INITIAL_PROBABILITY_MOTION;
-                                                $personData[$i]['lastConfirmation'] = $data[3];
+                                        foreach ($detectedPersons[strval($personID)] as &$likelyPosition) {
+                                            if ($likelyPosition['room'] == $motionSensor['room']) {
+                                                $likelyPosition['previousRoom'] = $likelyPosition['room'];
+                                                $likelyPosition['previousConfirmation'] = $likelyPosition['lastConfirmation'];
+                                                $likelyPosition['probability'] = self::INITIAL_PROBABILITY_MOTION;
+                                                $likelyPosition['lastConfirmation'] = $data[3];
                                             }
                                         }
-                                        SetValue($this->GetIDForIdent('Person' . strval($personID)), json_encode($personData));
                                     }
                                 } elseif (sizeof($personsInNeighboringRooms) > 0) {
                                     $this->SendDebug('Motion Sensor', 'Persons in neighboring rooms', 0);
                                     $movePersonID = $personsInNeighboringRooms[0];
                                     $currentProbability = 0;
-                                    $currentUpdate = 0;
+                                    $currentConfirmation = 0;
                                     $currentNeighboringRoom = 0;
                                     foreach ($personsInNeighboringRooms as $personID) {
-                                        $personData = json_decode(GetValue($this->GetIDForIdent('Person' . strval($personID))), true);
-                                        foreach ($personData as &$likelyPosition) {
-                                            if (in_array($likelyPosition['room'], $neighboringRooms) && ($likelyPosition['probability'] >= $currentProbability)) {
-                                                $lastMotionSensorUpdate = 0;
-                                                foreach (json_decode($this->ReadPropertyString('MotionSensors'), true) as $neighoringMotionSensor) {
-                                                    if (GetValue($neighoringMotionSensor['variableID']) && ($neighoringMotionSensor['room'] == $likelyPosition['room'])) {
-                                                        $lastMotionSensorUpdate = max($lastMotionSensorUpdate, IPS_GetVariable($neighoringMotionSensor['variableID'])['VariableUpdated']);
-                                                    }
-                                                }
-
-                                                if (($likelyPosition['probability'] > $currentProbability) || ($lastMotionSensorUpdate > $currentUpdate)) {
-                                                    $movePersonID = $personID;
-                                                    $currentProbability = $likelyPosition['probability'];
-                                                    $currentUpdate = $lastMotionSensorUpdate;
-                                                    $currentNeighboringRoom = $likelyPosition['room'];
-                                                }
+                                        foreach ($detectedPersons[strval($personID)] as &$likelyPosition) {
+                                            if (in_array($likelyPosition['room'], $neighboringRooms) &&
+                                                    (($likelyPosition['probability'] > $currentProbability) ||
+                                                        (($likelyPosition['probability'] == $currentProbability) &&
+                                                        ($likelyPosition['lastConfirmation'] > $currentConfirmation)))) {
+                                                $movePersonID = $personID;
+                                                $currentProbability = $likelyPosition['probability'];
+                                                $currentConfirmation = $likelyPosition['lastConfirmation'];
+                                                $currentNeighboringRoom = $likelyPosition['room'];
                                             }
                                         }
                                     }
 
-                                    $this->SetBuffer('previousRoom' . strval($movePersonID), strval($currentNeighboringRoom));
-
-                                    $movePersonData = json_decode(GetValue($this->GetIDForIdent('Person' . strval($movePersonID))), true);
-                                    for ($i = 0; $i < sizeof($movePersonData); $i++) {
-                                        if ($movePersonData[$i]['room'] == $currentNeighboringRoom) {
-                                            $this->SetBuffer('previousLocation' . strval($movePersonID) . '_' . strval($i), json_encode([
-                                                'room' => $movePersonData[$i]['room'],
-                                                'confirmation' => $movePersonData[$i]['lastConfirmation']
-                                            ]));
-                                            $movePersonData[$i]['room'] = $motionSensor['room'];
-                                            $movePersonData[$i]['probability'] = self::INITIAL_PROBABILITY_MOTION;
-                                            $movePersonData[$i]['lastConfirmation'] = $data[3];
+                                    foreach ($detectedPersons[strval($movePersonID)] as &$likelyPosition) {
+                                        if ($likelyPosition['room'] == $currentNeighboringRoom) {
+                                            $likelyPosition['previousRoom'] = $currentNeighboringRoom;
+                                            $likelyPosition['previousConfirmation'] = $likelyPosition['lastConfirmation'];
+                                            $likelyPosition['room'] = $motionSensor['room'];
+                                            $likelyPosition['probability'] = self::INITIAL_PROBABILITY_MOTION;
+                                            $likelyPosition['lastConfirmation'] = $data[3];
                                         }
+
                                     }
-                                    SetValue($this->GetIDForIdent('Person' . strval($movePersonID)), json_encode($movePersonData));
                                 } // New person required as no existing is near triggered motion sensor
                                 else {
                                     $this->SendDebug('Motion Sensor', 'No person nearby, so create a new one', 0);
-                                    $personData = [[
+                                    $detectedPersons[strval($freePersonID)] = [[
+                                        'previousRoom' => -1,
+                                        'previousConfirmation' => -1,
                                         'room' => $motionSensor['room'],
                                         'probability' => self::INITIAL_PROBABILITY_MOTION,
                                         'lastConfirmation' => $data[3]
                                     ]];
-                                    $variableID = $this->RegisterVariableString('Person' . strval($freePersonID), 'Person' . strval($freePersonID), '', 0);
-                                    SetValue($variableID, json_encode($personData));
-                                    $this->SetBuffer('previousLocation' . strval($freePersonID) .'_0', json_encode([
-                                        'room' => -1,
-                                        'confirmation' => -1
-                                    ]));
                                 }
+                                SetValue($this->GetIDForIdent('DetectedPersons'), json_encode($detectedPersons));
                             }
                         }
                     }
@@ -835,42 +814,27 @@ class IRiS extends WebHookModule {
                                 }
                             }
 
-                            foreach (IPS_GetChildrenIDs($this->InstanceID) as $childID) {
-                                // It's a variable that describes a person
-                                if (IPS_VariableExists($childID) && (substr(IPS_GetObject($childID)['ObjectIdent'], 0, 6) == 'Person')) {
-                                    $personID = intval(substr(IPS_GetObject($childID)['ObjectIdent'], 6));
-                                    $personData = json_decode(GetValue($childID), true);
-                                    $update = false;
-                                    $removeIndexes = [];
-                                    for ($i = 0; $i < sizeof($personData); $i++) {
-                                        if (in_array($personData[$i]['room'], $affectedRooms) && ($personData[$i]['lastConfirmation'] >= ($data[3] - self::SMOKE_DETECTOR_TURNBACK))) {
-                                            $update = true;
-                                            $previousData = json_decode($this->GetBuffer('previousLocation' . strval($personID) . '_' . strval($i)), true);
-                                            if ($previousData['room'] == -1) {
-                                                $removeIndexes[] = $i;
-                                            } else {
-                                                $personData[$i]['room'] = $previousData['room'];
-                                                $personData[$i]['lastConfirmation'] = $previousData['confirmation'];
+                            $update = false;
+                            $detectedPersons = json_decode(GetValue($this->GetIDForIdent('DetectedPersons')), true);
+                            foreach ($detectedPersons as $personIDString => &$personData) {
+                                foreach ($personData as $i => &$likelyPosition) {
+                                    if (in_array($likelyPosition['room'], $affectedRooms) && ($likelyPosition['lastConfirmation'] >= ($data[3] - self::SMOKE_DETECTOR_TURNBACK))) {
+                                        $update = true;
+                                        if ($likelyPosition['previousRoom'] == -1) {
+                                            unset($personData[$i]);
+                                            if (sizeof($personData) == 0) {
+                                                unset($detectedPersons[$personIDString]);
                                             }
+                                        } else {
+                                            $likelyPosition['room'] = $likelyPosition['previousRoom'];
+                                            $likelyPosition['lastConfirmation'] = $likelyPosition['previousConfirmation'];
                                         }
                                     }
-
-                                    if ($update) {
-                                        // Delete indexes, starting at the highest to avoid complications when indexes change
-                                        foreach (array_reverse($removeIndexes) as $removeIndex) {
-                                            array_splice($personData, $removeIndex, 1);
-                                        }
-
-
-                                        if (sizeof($personData) == 0) {
-                                            IPS_DeleteVariable($childID);
-                                        }
-                                        else {
-                                            SetValueString($childID, json_encode($personData));
-                                        }
-                                    }
-
                                 }
+                            }
+
+                            if ($update) {
+                                SetValue($this->GetIDForIdent('DetectedPersons'), json_encode($detectedPersons));
                             }
                         }
                     }
@@ -1000,16 +964,11 @@ class IRiS extends WebHookModule {
             $result[] = $person;
         }
 
-        foreach(IPS_GetChildrenIDs($this->InstanceID) as $childID) {
-            // It's a variable that describes a person
-            if (IPS_VariableExists($childID) && (substr(IPS_GetObject($childID)['ObjectIdent'], 0, 6) == 'Person')) {
-                $personID = intval(substr(IPS_GetObject($childID)['ObjectIdent'], 6));
-
-                $result[] = [
-                    'id' => $personID,
-                    'coreData' => false
-                ];
-            }
+        foreach (json_decode(GetValue($this->GetIDForIdent('DetectedPersons')), true) as $personIDString => $personData) {
+            $result[] = [
+                'id' => intval($personIDString),
+                'coreData' => false
+            ];
         }
 
         return $result;
@@ -1115,11 +1074,9 @@ class IRiS extends WebHookModule {
             }
         }
 
-        foreach(IPS_GetChildrenIDs($this->InstanceID) as $childID) {
-            // It's a variable that describes a person
-            if (IPS_VariableExists($childID) && (substr(IPS_GetObject($childID)['ObjectIdent'], 0, 6) == 'Person')) {
-                $personID = intval(substr(IPS_GetObject($childID)['ObjectIdent'], 6));
-                $personData = json_decode(GetValue($this->GetIDForIdent('Person' . strval($personID))), true);
+        foreach(json_decode(GetValue($this->GetIDForIdent('DetectedPersons')), true) as $personIDString => $personData) {
+            $personID = intval($personIDString);
+            if ((sizeof($ids) == 0) || in_array(intval($personIDString), $ids)) {
 
                 $likelyPositions = [];
                 foreach ($personData as $likelyPosition) {
@@ -1353,41 +1310,32 @@ class IRiS extends WebHookModule {
 
     private function ApplyProbabilityDecay($timestamp) {
         $this->SendDebug('Propability Decay - Timestamp', $timestamp, 0);
-        foreach(IPS_GetChildrenIDs($this->InstanceID) as $childID) {
-            // It's a variable that describes a person
-            if (IPS_VariableExists($childID) && (substr(IPS_GetObject($childID)['ObjectIdent'], 0, 6) == 'Person')) {
-                $personData = json_decode(GetValue($childID), true);
-                $this->SendDebug('Propability Decay - Person Data', json_encode($personData), 0);
-                foreach($personData as &$likelyPosition) {
+        $detectedPersons = json_decode(GetValue($this->GetIDForIdent('DetectedPersons')), true);
 
-                    $updateProbability = true;
-                        foreach (json_decode($this->ReadPropertyString('MotionSensors'), true) as $motionSensor) {
-                            if (($motionSensor['room'] == $likelyPosition['room']) && (GetValue($motionSensor['variableID']))) {
-                                $updateProbability = false;
-                            }
+        foreach ($detectedPersons as $personIDString => &$personData) {
+            $this->SendDebug('Propability Decay - Person Data', json_encode($personData), 0);
+            foreach($personData as $i => &$likelyPosition) {
+
+                $updateProbability = true;
+                foreach (json_decode($this->ReadPropertyString('MotionSensors'), true) as $motionSensor) {
+                    if (($motionSensor['room'] == $likelyPosition['room']) && (GetValue($motionSensor['variableID']))) {
+                        $updateProbability = false;
+                    }
+                }
+
+                if ($updateProbability) {
+                    $likelyPosition['probability'] -= (($timestamp - $likelyPosition['lastConfirmation']) / self::DECAY_PROBABILITY_MOTION) * 0.01;
+                    if ($likelyPosition['probability'] <= 0) {
+                        unset($personData[$i]);
+                        if (sizeof($personData) == 0) {
+                            unset($detectedPersons[$personIDString]);
                         }
-
-                    if ($updateProbability) {
-                        $likelyPosition['probability'] -= (($timestamp - $likelyPosition['lastConfirmation']) / self::DECAY_PROBABILITY_MOTION) * 0.01;
                     }
-                }
-
-                for ($i = sizeof($personData) - 1; $i >= 0; $i--) {
-                    if ($personData[$i]['probability'] <= 0) {
-                        array_splice($personData, $i, 1);
-                    }
-                }
-
-                if (sizeof($personData) == 0) {
-                    $this->SendDebug('Propability Decay', 'Deleted person data', 0);
-                    IPS_DeleteVariable($childID);
-                }
-                else {
-                    $this->SendDebug('Propability Decay - Updated Person Data', json_encode($personData), 0);
-                    SetValueString($childID, json_encode($personData));
                 }
             }
         }
+
+        SetValue($this->GetIDForIdent('DetectedPersons'), json_encode($detectedPersons));
     }
 }
 
