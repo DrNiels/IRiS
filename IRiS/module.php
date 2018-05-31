@@ -7,6 +7,7 @@ class IRiS extends WebHookModule {
     const INITIAL_PROBABILITY_MOTION = 0.8;
     const DECAY_PROBABILITY_MOTION = 90; // Subtract probability by 0.01 every 90 seconds if there is no motion trigger = Completely removed after 2 hours
     const SMOKE_DETECTOR_TURNBACK = 30; // If a motion sensors triggers 30 seconds before a smoke detector, undo the position update
+    const STORED_PREVIOUS_DATA = 10; // Store the last 10 datasets of room + confirmation time
 
     public function __construct($InstanceID) {
         parent::__construct($InstanceID, "iris");
@@ -729,10 +730,10 @@ class IRiS extends WebHookModule {
                                     foreach ($personsInSameRoom as $personID) {
                                         foreach ($detectedPersons[strval($personID)] as &$likelyPosition) {
                                             if ($likelyPosition['room'] == $motionSensor['room']) {
-                                                $likelyPosition['previousRoom'] = $likelyPosition['room'];
-                                                $likelyPosition['previousConfirmation'] = $likelyPosition['lastConfirmation'];
+                                                $this->AddPreviousLocation($likelyPosition);
                                                 $likelyPosition['probability'] = self::INITIAL_PROBABILITY_MOTION;
                                                 $likelyPosition['lastConfirmation'] = $data[3];
+                                                break;
                                             }
                                         }
                                     }
@@ -758,11 +759,44 @@ class IRiS extends WebHookModule {
 
                                     foreach ($detectedPersons[strval($movePersonID)] as &$likelyPosition) {
                                         if ($likelyPosition['room'] == $currentNeighboringRoom) {
-                                            $likelyPosition['previousRoom'] = $currentNeighboringRoom;
-                                            $likelyPosition['previousConfirmation'] = $likelyPosition['lastConfirmation'];
-                                            $likelyPosition['room'] = $motionSensor['room'];
-                                            $likelyPosition['probability'] = self::INITIAL_PROBABILITY_MOTION;
-                                            $likelyPosition['lastConfirmation'] = $data[3];
+                                            // Check if a person moved back and forth for a fourth time, i.e., neighboring room -> this room -> neighboring room -> this room
+                                            // In that case, we assume that it's two persons and not a single one running back and forth
+                                            $createNewPerson = false;
+                                            if (sizeof($likelyPosition['previousRooms']) >= 3) {
+                                                $switchTimes = 1;
+                                                $currentlyCheckedRoom = $likelyPosition['previousRooms'][0];
+                                                $otherRoom = $motionSensor['room'];
+                                                foreach ($likelyPosition['previousRooms'] as $previousRoom) {
+                                                    if (($currentlyCheckedRoom != $previousRoom) && ($otherRoom != $previousRoom)) {
+                                                        break;
+                                                    }
+
+                                                    if ($previousRoom == $otherRoom) {
+                                                        $switchTimes++;
+                                                        $otherRoom = $currentlyCheckedRoom;
+                                                        $currentlyCheckedRoom = $previousRoom;
+                                                    }
+                                                }
+                                                $createNewPerson = ($switchTimes >= 3);
+                                            }
+                                            if ($createNewPerson) {
+                                                $this->SendDebug('Motion Sensor', 'Too much moving back and forth, so create a new one', 0);
+                                                $detectedPersons[strval($freePersonID)] = [[
+                                                    'previousRooms' => [],
+                                                    'previousConfirmations' => [],
+                                                    'room' => $motionSensor['room'],
+                                                    'probability' => self::INITIAL_PROBABILITY_MOTION,
+                                                    'lastConfirmation' => $data[3]
+                                                ]];
+                                            }
+                                            else {
+                                                $this->AddPreviousLocation($likelyPosition);
+                                                $likelyPosition['room'] = $motionSensor['room'];
+                                                $likelyPosition['probability'] = self::INITIAL_PROBABILITY_MOTION;
+                                                $likelyPosition['lastConfirmation'] = $data[3];
+                                            }
+                                            $this->SendDebug('Motion Sensor - New detected persons', json_encode($detectedPersons), 0);
+                                            break;
                                         }
 
                                     }
@@ -770,8 +804,8 @@ class IRiS extends WebHookModule {
                                 else {
                                     $this->SendDebug('Motion Sensor', 'No person nearby, so create a new one', 0);
                                     $detectedPersons[strval($freePersonID)] = [[
-                                        'previousRoom' => -1,
-                                        'previousConfirmation' => -1,
+                                        'previousRooms' => [],
+                                        'previousConfirmations' => [],
                                         'room' => $motionSensor['room'],
                                         'probability' => self::INITIAL_PROBABILITY_MOTION,
                                         'lastConfirmation' => $data[3]
@@ -820,14 +854,23 @@ class IRiS extends WebHookModule {
                                 foreach ($personData as $i => &$likelyPosition) {
                                     if (in_array($likelyPosition['room'], $affectedRooms) && ($likelyPosition['lastConfirmation'] >= ($data[3] - self::SMOKE_DETECTOR_TURNBACK))) {
                                         $update = true;
-                                        if ($likelyPosition['previousRoom'] == -1) {
+                                        $usedIndex = 0;
+                                        while (($usedIndex < sizeof($likelyPosition['previousRooms'])) &&
+                                            in_array($likelyPosition['previousRooms'][$usedIndex], $affectedRooms) &&
+                                            ($likelyPosition['previousConfirmations'][$usedIndex] >= ($data[3] - self::SMOKE_DETECTOR_TURNBACK))) {
+                                            $usedIndex++;
+                                        }
+
+                                        if ($usedIndex == sizeof($likelyPosition['previousRooms'])) {
                                             unset($personData[$i]);
                                             if (sizeof($personData) == 0) {
                                                 unset($detectedPersons[$personIDString]);
                                             }
                                         } else {
-                                            $likelyPosition['room'] = $likelyPosition['previousRoom'];
-                                            $likelyPosition['lastConfirmation'] = $likelyPosition['previousConfirmation'];
+                                            $likelyPosition['room'] = $likelyPosition['previousRooms'][$usedIndex];
+                                            $likelyPosition['lastConfirmation'] = $likelyPosition['previousConfirmations'][$usedIndex];
+                                            $likelyPosition['previousRooms'] = array_slice($likelyPosition['previousRooms'], $usedIndex + 1);
+                                            $likelyPosition['previousConfirmations'] = array_slice($likelyPosition['previousConfirmations'], $usedIndex + 1);
                                         }
                                     }
                                 }
@@ -1336,6 +1379,13 @@ class IRiS extends WebHookModule {
         }
 
         SetValue($this->GetIDForIdent('DetectedPersons'), json_encode($detectedPersons));
+    }
+
+    private function AddPreviousLocation(&$likelyPosition) {
+        array_unshift($likelyPosition['previousRooms'], $likelyPosition['room']);
+        array_unshift($likelyPosition['previousConfirmations'], $likelyPosition['lastConfirmation']);
+        $likelyPosition['previousRooms'] = array_slice($likelyPosition['previousRooms'], 0, self::STORED_PREVIOUS_DATA);
+        $likelyPosition['previousConfirmations'] = array_slice($likelyPosition['previousConfirmations'], 0, self::STORED_PREVIOUS_DATA);
     }
 }
 
