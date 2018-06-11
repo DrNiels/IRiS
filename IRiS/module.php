@@ -768,27 +768,43 @@ class IRiS extends WebHookModule {
 
                     $reportBlocked = false;
                     if ($isMotionSensor) {
-                        $smokeDetectedOwnRoom = false;
-                        $roomHasSmokeDetectors = false;
-                        $smokeDetectorRoomAbove = false;
                         $this->SendDebug('Sensor blocked? - Smoke Detectors', $this->ReadPropertyString('SmokeDetectors'), 0);
-                        foreach (json_decode($this->ReadPropertyString('SmokeDetectors'), true) as $smokeDetector) {
-                            if ($smokeDetector['room'] == $triggeredRoom) {
-                                $this->SendDebug('Sensor blocked?', 'Smoke Detector in room', 0);
-                                $roomHasSmokeDetectors = true;
-                                if (GetValue($smokeDetector['variableID'])) {
-                                    $this->SendDebug('Sensor blocked?', 'Smoke Detector in room triggered!', 0);
-                                    $smokeDetectedOwnRoom = true;
-                                    break;
+                        $reportBlocked = false;
+                        switch ($this->ReadPropertyInteger('PersonDetectionMode')) {
+                            case 0: // Regular mode
+                                $smokeDetectedOwnRoom = false;
+                                $roomHasSmokeDetectors = false;
+                                $smokeDetectorRoomAbove = false;
+                                foreach (json_decode($this->ReadPropertyString('SmokeDetectors'), true) as $smokeDetector) {
+                                    if ($smokeDetector['room'] == $triggeredRoom) {
+                                        $this->SendDebug('Sensor blocked?', 'Smoke Detector in room', 0);
+                                        $roomHasSmokeDetectors = true;
+                                        if (GetValue($smokeDetector['variableID'])) {
+                                            $this->SendDebug('Sensor blocked?', 'Smoke Detector in room triggered!', 0);
+                                            $smokeDetectedOwnRoom = true;
+                                            break;
+                                        }
+                                    } elseif
+                                        (in_array($smokeDetector['room'], $neighboringRooms) &&
+                                            ($this->GetRoomLevelByIRISID($triggeredRoom) < $this->GetRoomLevelByIRISID($smokeDetector['room'])) &&
+                                            GetValue($smokeDetector['variableID'])){
+                                        $this->SendDebug('Sensor blocked?', 'Smoke Detector in room above triggered', 0);
+                                        $smokeDetectorRoomAbove = true;
+                                    }
                                 }
-                            } elseif (in_array($smokeDetector['room'], $neighboringRooms) &&
-                                ($this->GetRoomLevelByIRISID($triggeredRoom) < $this->GetRoomLevelByIRISID($smokeDetector['room'])) &&
-                                GetValue($smokeDetector['variableID'])) {
-                                $this->SendDebug('Sensor blocked?', 'Smoke Detector in room above triggered', 0);
-                                $smokeDetectorRoomAbove = true;
-                            }
+                                $reportBlocked = $smokeDetectedOwnRoom || (!$roomHasSmokeDetectors && $smokeDetectorRoomAbove);
+                                break;
+
+                            case 1: // Simplified mode
+                                foreach (json_decode($this->ReadPropertyString('SmokeDetectors'), true) as $smokeDetector) {
+                                    if (GetValue($smokeDetector['variableID'])) {
+                                        $this->SendDebug('Sensor blocked? - simplified', 'Smoke Detector triggered!', 0);
+                                        $reportBlocked = true;
+                                        break;
+                                    }
+                                }
+                                break;
                         }
-                        $reportBlocked = $smokeDetectedOwnRoom || (!$roomHasSmokeDetectors && $smokeDetectorRoomAbove);
                     }
 
                     if (!$reportBlocked) {
