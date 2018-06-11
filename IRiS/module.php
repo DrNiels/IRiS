@@ -973,30 +973,37 @@ class IRiS extends WebHookModule {
                             foreach ($detectedPersons as $personIDString => &$personData) {
                                 foreach ($personData as $i => &$likelyPosition) {
                                     if (in_array($likelyPosition['room'], $affectedRooms) && ($likelyPosition['lastConfirmation'] >= ($data[3] - self::SMOKE_DETECTOR_TURNBACK))) {
+                                        $this->SendDebug('Undo movement from smoke detector', 'Start', 0);
                                         $update = true;
                                         $usedIndex = 0;
-                                        while (($usedIndex < sizeof($likelyPosition['previousRooms'])) &&
-                                            in_array($likelyPosition['previousRooms'][$usedIndex], $affectedRooms) &&
+                                        while (($usedIndex < sizeof($likelyPosition['previousLocations'])) &&
+                                            in_array($likelyPosition['previousLocations'][$usedIndex], $affectedRooms) &&
                                             ($likelyPosition['previousConfirmations'][$usedIndex] >= ($data[3] - self::SMOKE_DETECTOR_TURNBACK))) {
                                             $usedIndex++;
+                                            $this->SendDebug('Undo movement from smoke detector, new usedIndex = ', $usedIndex, 0);
                                         }
 
-                                        if ($usedIndex == sizeof($likelyPosition['previousRooms'])) {
+                                        $this->SendDebug('Undo movement from smoke detector - previousLocations', json_encode($likelyPosition['previousLocations']), 0);
+                                        $this->SendDebug('Undo movement from smoke detector', 'Remove person', 0);
+                                        if ($usedIndex == sizeof($likelyPosition['previousLocations'])) {
+                                            $this->SendDebug('Undo movement from smoke detector', 'Remove person', 0);
+
                                             unset($personData[$i]);
                                             if (sizeof($personData) == 0) {
                                                 unset($detectedPersons[$personIDString]);
                                             }
                                         } else {
-                                            $likelyPosition['room'] = $likelyPosition['previousRooms'][$usedIndex];
-                                            $likelyPosition['lastConfirmation'] = $likelyPosition['previousConfirmations'][$usedIndex];
-                                            $likelyPosition['previousRooms'] = array_slice($likelyPosition['previousRooms'], $usedIndex + 1);
-                                            $likelyPosition['previousConfirmations'] = array_slice($likelyPosition['previousConfirmations'], $usedIndex + 1);
+                                            $this->SendDebug('Undo movement from smoke detector', 'Rollback person', 0);
+                                            $likelyPosition['room'] = $likelyPosition['previousLocations'][$usedIndex];
+                                            $likelyPosition['previousLocations'] = array_slice($likelyPosition['previousLocations'], $usedIndex + 1);
+                                            $this->SendDebug('Undo movement from smoke detector - New likely position', json_encode($likelyPosition), 0);
                                         }
                                     }
                                 }
                             }
 
                             if ($update) {
+                                $this->SendDebug('Write new value', json_encode($detectedPersons), 0);
                                 SetValue($this->GetIDForIdent('DetectedPersons'), json_encode($detectedPersons));
                             }
                         }
