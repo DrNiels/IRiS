@@ -1510,7 +1510,7 @@ class IRiS extends WebHookModule {
                 }
 
                 if ($updateProbability) {
-                    $likelyPosition['probability'] -= (($timestamp - $likelyPosition['lastConfirmation']) / self::DECAY_PROBABILITY_MOTION) * 0.01;
+                    $likelyPosition['probability'] = self::INITIAL_PROBABILITY_MOTION - (($timestamp - $likelyPosition['lastConfirmation']) / self::DECAY_PROBABILITY_MOTION) * 0.01;
                     if ($likelyPosition['probability'] <= 0) {
                         unset($personData[$i]);
                         if (sizeof($personData) == 0) {
