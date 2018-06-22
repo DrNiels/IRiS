@@ -193,6 +193,7 @@ class IRiS extends WebHookModule {
                 [
                     'type' => 'List',
                     'name' => 'Floors',
+                    'rowCount' => 5,
                     'caption' => 'Floors',
                     'add' => true,
                     'delete' => true,
@@ -273,6 +274,7 @@ class IRiS extends WebHookModule {
                 [
                     'type' => 'List',
                     'name' => 'Rooms',
+                    'rowCount' => 10,
                     'caption' => 'Rooms',
                     'add' => true,
                     'delete' => true,
@@ -368,6 +370,7 @@ class IRiS extends WebHookModule {
                 [
                     'type' => 'List',
                     'name' => 'RoomConnections',
+                    'rowCount' => 10,
                     'caption' => 'Connections between rooms',
                     'add' => true,
                     'delete' => true,
@@ -398,6 +401,7 @@ class IRiS extends WebHookModule {
                 [
                     'type' => 'List',
                     'name' => 'Persons',
+                    'rowCount' => 5,
                     'caption' => 'Persons',
                     'add' => true,
                     'delete' => true,
@@ -442,6 +446,7 @@ class IRiS extends WebHookModule {
                 [
                     'type' => 'List',
                     'name' => 'SmokeDetectors',
+                    'rowCount' => 10,
                     'caption' => 'Smoke Detectors',
                     'add' => true,
                     'delete' => true,
@@ -496,6 +501,7 @@ class IRiS extends WebHookModule {
                 [
                     'type' => 'List',
                     'name' => 'TemperatureSensors',
+                    'rowCount' => 10,
                     'caption' => 'Temperature Sensors',
                     'add' => true,
                     'delete' => true,
@@ -550,6 +556,7 @@ class IRiS extends WebHookModule {
                 [
                     'type' => 'List',
                     'name' => 'MotionSensors',
+                    'rowCount' => 10,
                     'caption' => 'Motion Sensors',
                     'add' => true,
                     'delete' => true,
@@ -604,6 +611,7 @@ class IRiS extends WebHookModule {
                 [
                     'type' => 'List',
                     'name' => 'Doors',
+                    'rowCount' => 10,
                     'caption' => 'Doors',
                     'add' => true,
                     'delete' => true,
@@ -658,6 +666,7 @@ class IRiS extends WebHookModule {
                 [
                     'type' => 'List',
                     'name' => 'Actors',
+                    'rowCount' => 10,
                     'caption' => 'Actors',
                     'add' => true,
                     'delete' => true,
