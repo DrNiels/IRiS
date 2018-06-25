@@ -58,6 +58,10 @@ class IRiS extends WebHookModule {
             $this->RegisterMessage($smokeDetector['variableID'], 10603 /* VM_UPDATE */);
         }
 
+        foreach (json_decode($this->ReadPropertyString('Actors'), true) as $actor) {
+            $this->RegisterMessage($actor['variableID'], 10603 /* VM_UPDATE */);
+        }
+
         $this->FillIDs();
     }
     
