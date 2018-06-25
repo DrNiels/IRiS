@@ -1469,7 +1469,7 @@ class IRiS extends WebHookModule {
 
     private function FillIDs() {
         $availableID = 0;
-        foreach(["Floors", "Rooms", "Persons", "SmokeDetectors", "MotionSensors", "Doors"] as $property) {
+        foreach(["Floors", "Rooms", "Persons", "SmokeDetectors", "MotionSensors", "Doors", "Actors"] as $property) {
             foreach (json_decode($this->ReadPropertyString($property), true) as $value) {
                 if ($value['id'] != '') {
                     $availableID = max($availableID, intval($value['id']));
