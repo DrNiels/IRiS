@@ -1023,7 +1023,7 @@ class IRiS extends WebHookModule {
                                             }
                                         } else {
                                             $this->SendDebug('Undo movement from smoke detector', 'Rollback person', 0);
-                                            $likelyPosition['room'] = $likelyPosition['previousLocations'][$usedIndex];
+                                            $likelyPosition['room'] = $likelyPosition['previousLocations'][$usedIndex]['room'];
                                             $likelyPosition['previousLocations'] = array_slice($likelyPosition['previousLocations'], $usedIndex + 1);
                                             $this->SendDebug('Undo movement from smoke detector - New likely position', json_encode($likelyPosition), 0);
                                         }
