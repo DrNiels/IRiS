@@ -270,6 +270,27 @@ class IRiS extends WebHookModule {
                             'edit' => [
                                 'type' => 'SelectFile'
                             ]
+                        ],
+                        [
+                            'caption' => 'Map: Pixels per Meter',
+                            'name' => 'pixelsPerMeter',
+                            'width' => '180px',
+                            'add' => '',
+                            'edit' => [
+                                'type' => 'NumberSpinner',
+                                'digits' => 2
+                            ]
+                        ],
+                        [
+                            'caption' => 'Map: North Degree',
+                            'name' => 'north',
+                            'width' => '150px',
+                            'add' => '',
+                            'edit' => [
+                                'type' => 'NumberSpinner',
+                                'digits' => 2,
+                                'suffix' => '°'
+                            ]
                         ]
 
                     ],
@@ -1253,7 +1274,9 @@ class IRiS extends WebHookModule {
         foreach (json_decode($this->ReadPropertyString('Floors'), true) as $floor) {
             $maps[] = [
                 'floor' => intval($floor['id']),
-                'map' => $floor['map']
+                'map' => $floor['map'],
+                'pixelsPerMeter' => $floor['pixelsPerMeter'],
+                'north' => $floor['north']
             ];
         }
 
