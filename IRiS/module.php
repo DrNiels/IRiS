@@ -275,7 +275,7 @@ class IRiS extends WebHookModule {
                             'caption' => 'Map: Pixels per Meter',
                             'name' => 'pixelsPerMeter',
                             'width' => '180px',
-                            'add' => '',
+                            'add' => 1,
                             'edit' => [
                                 'type' => 'NumberSpinner',
                                 'digits' => 2
@@ -285,7 +285,7 @@ class IRiS extends WebHookModule {
                             'caption' => 'Map: North Degree',
                             'name' => 'north',
                             'width' => '150px',
-                            'add' => '',
+                            'add' => 0,
                             'edit' => [
                                 'type' => 'NumberSpinner',
                                 'digits' => 2,
