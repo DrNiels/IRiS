@@ -24,7 +24,6 @@ class IRiS extends WebHookModule {
 
         $this->RegisterPropertyString("Floors", "[]");
         $this->RegisterPropertyString("Rooms", "[]");
-        $this->RegisterPropertyString("RoomConnections", "[]");
         $this->RegisterPropertyString("Persons", "[]");
         $this->RegisterPropertyString("SmokeDetectors", "[]");
         $this->RegisterPropertyString("TemperatureSensors", "[]");
@@ -107,8 +106,6 @@ class IRiS extends WebHookModule {
                         ]
                     ]
                 ];
-
-                //echo $map;
 
             }
 
@@ -441,37 +438,6 @@ class IRiS extends WebHookModule {
                             'add' => 0,
                             'edit' => [
                                 'type' => 'SelectVariable'
-                            ]
-                        ]
-                    ],
-                    'values' => []
-                ],
-                [
-                    'type' => 'List',
-                    'name' => 'RoomConnections',
-                    'rowCount' => 10,
-                    'caption' => 'Connections between rooms',
-                    'add' => true,
-                    'delete' => true,
-                    'columns' => [
-                        [
-                            'caption' => 'First Room',
-                            'name' => 'room1',
-                            'width' => '200px',
-                            'add' => $roomAdd,
-                            'edit' => [
-                                'type' => 'Select',
-                                'options' => $roomOptions
-                            ]
-                        ],
-                        [
-                            'caption' => 'Second Room',
-                            'name' => 'room2',
-                            'width' => '200px',
-                            'add' => $roomAdd,
-                            'edit' => [
-                                'type' => 'Select',
-                                'options' => $roomOptions
                             ]
                         ]
                     ],
