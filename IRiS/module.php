@@ -20,8 +20,7 @@ class IRiS extends WebHookModule {
         $this->RegisterPropertyString("Address", "");
         $this->RegisterPropertyString("BuildingMaterial", "");
         $this->RegisterPropertyString("HeatingType", "{}");
-        $this->RegisterPropertyString("AlarmTypes", "[]");
-        $this->RegisterPropertyInteger("PersonDetectionMode", 0);
+        $this->RegisterPropertyInteger("PresenceGeneral", 0);
 
         $this->RegisterPropertyString("Floors", "[]");
         $this->RegisterPropertyString("Rooms", "[]");
@@ -29,15 +28,9 @@ class IRiS extends WebHookModule {
         $this->RegisterPropertyString("Persons", "[]");
         $this->RegisterPropertyString("SmokeDetectors", "[]");
         $this->RegisterPropertyString("TemperatureSensors", "[]");
-        $this->RegisterPropertyString("MotionSensors", "[]");
         $this->RegisterPropertyString("Doors", "[]");
-        $this->RegisterPropertyString("Actors", "[]");
 
-        $variableID = $this->RegisterVariableString("DetectedPersons", $this->Translate("Detected Persons"), "", 0);
-
-        if (GetValueString($variableID) == '') {
-            SetValueString($variableID, '{}');
-        }
+        $this->RegisterAttributeString("AlarmTypes", "[]");
     }
 
     public function Destroy(){
@@ -50,18 +43,6 @@ class IRiS extends WebHookModule {
         //Never delete this line!
         parent::ApplyChanges();
 
-        foreach (json_decode($this->ReadPropertyString('MotionSensors'), true) as $motionSensor) {
-            $this->RegisterMessage($motionSensor['variableID'], 10603 /* VM_UPDATE */);
-        }
-
-        foreach (json_decode($this->ReadPropertyString('SmokeDetectors'), true) as $smokeDetector) {
-            $this->RegisterMessage($smokeDetector['variableID'], 10603 /* VM_UPDATE */);
-        }
-
-        foreach (json_decode($this->ReadPropertyString('Actors'), true) as $actor) {
-            $this->RegisterMessage($actor['variableID'], 10603 /* VM_UPDATE */);
-        }
-
         $this->FillIDs();
     }
     
@@ -72,11 +53,67 @@ class IRiS extends WebHookModule {
         $floors = json_decode($this->ReadPropertyString('Floors'), true);
         usort($floors, $cmpFloors);
         $floorOptions = [];
+        $floorMaps = [];
         foreach ($floors as $floor) {
             $floorOptions[] = [
                 'caption' => $floor['name'],
                 'value' => intval($floor['id'])
             ];
+
+            $map = base64_decode($floor['map']);
+            $bracketPosition = strpos($map, '>'); // Find closing bracket of initial svg-tag
+            if ($bracketPosition !== false) {
+                $map = substr($map, 0, $bracketPosition) .
+                    ' width="800"><style>
+                    .room {
+                      fill: red;
+                      fill-opacity: 0.3;
+                    }
+                    
+                    .wall {
+                      stroke: black;
+                      fill: none;
+                    }
+                    
+                    .door {
+                      stroke: blue;
+                      stroke-width: 3;
+                    }
+                    
+                    .window {
+                      stroke: green;
+                      stroke-width: 5;
+                    }
+                    
+                    .window-2 {
+                      stroke: purple;
+                      stroke-width: 5;
+                    }
+                    
+                    .stairs {
+                      stroke: grey;
+                      fill: white
+                    }
+                    </style>' .
+                    substr($map, $bracketPosition + 1);
+
+                $floorMaps[] = [
+                    'type' => 'ExpansionPanel',
+                    'caption' => $floor['name'],
+                    'items' => [
+                        [
+                            'type' => 'Image',
+                            'image' => 'data:image/svg+xml;base64,' . base64_encode($map)
+                        ]
+                    ]
+                ];
+
+                //echo $map;
+
+            }
+
+
+
         }
         $floorAdd = 0;
         if (sizeof($floorOptions) > 0) {
@@ -119,7 +156,7 @@ class IRiS extends WebHookModule {
         }
 
         return json_encode([
-            'elements' => [
+            'elements' => array_merge([
                 [
                     'type' => 'ValidationTextBox',
                     'name' => 'Address',
@@ -194,6 +231,14 @@ class IRiS extends WebHookModule {
                         ]
                     ]
                 ],
+                [
+                    'type' => 'SelectVariable',
+                    'name' => 'PresenceGeneral',
+                    'caption' => 'General Presence'
+                ]
+            ],
+            $floorMaps,
+            [
                 [
                     'type' => 'List',
                     'name' => 'Floors',
@@ -388,6 +433,15 @@ class IRiS extends WebHookModule {
                                     ]
                                 ]
                             ]
+                        ],
+                        [
+                            'caption' => 'Presence',
+                            'name' => 'presence',
+                            'width' => '100px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectVariable'
+                            ]
                         ]
                     ],
                     'values' => []
@@ -580,61 +634,6 @@ class IRiS extends WebHookModule {
                 ],
                 [
                     'type' => 'List',
-                    'name' => 'MotionSensors',
-                    'rowCount' => 10,
-                    'caption' => 'Motion Sensors',
-                    'add' => true,
-                    'delete' => true,
-                    'columns' => [
-                        [
-                            'caption' => 'ID',
-                            'name' => 'id',
-                            'width' => '75px',
-                            'add' => '',
-                            'save' => true
-                        ],
-                        [
-                            'caption' => 'Room',
-                            'name' => 'room',
-                            'width' => '200px',
-                            'add' => $roomAdd,
-                            'edit' => [
-                                'type' => 'Select',
-                                'options' => $roomOptions
-                            ]
-                        ],
-                        [
-                            'caption' => 'Variable',
-                            'name' => 'variableID',
-                            'width' => 'auto',
-                            'add' => 0,
-                            'edit' => [
-                                'type' => 'SelectVariable'
-                            ]
-                        ],
-                        [
-                            'caption' => 'Map Position X',
-                            'name' => 'x',
-                            'width' => '130px',
-                            'add' => 0,
-                            'edit' => [
-                                'type' => 'NumberSpinner'
-                            ]
-                        ],
-                        [
-                            'caption' => 'Map Position Y',
-                            'name' => 'y',
-                            'width' => '130px',
-                            'add' => 0,
-                            'edit' => [
-                                'type' => 'NumberSpinner'
-                            ]
-                        ]
-                    ],
-                    'values' => []
-                ],
-                [
-                    'type' => 'List',
                     'name' => 'Doors',
                     'rowCount' => 10,
                     'caption' => 'Doors',
@@ -687,396 +686,17 @@ class IRiS extends WebHookModule {
                         ]
                     ],
                     'values' => []
-                ],
-                [
-                    'type' => 'List',
-                    'name' => 'Actors',
-                    'rowCount' => 10,
-                    'caption' => 'Actors',
-                    'add' => true,
-                    'delete' => true,
-                    'columns' => [
-                        [
-                            'caption' => 'ID',
-                            'name' => 'id',
-                            'width' => '75px',
-                            'add' => '',
-                            'save' => true
-                        ],
-                        [
-                            'caption' => 'Room',
-                            'name' => 'room',
-                            'width' => '200px',
-                            'add' => $roomAdd,
-                            'edit' => [
-                                'type' => 'Select',
-                                'options' => $roomOptions
-                            ]
-                        ],
-                        [
-                            'caption' => 'Variable',
-                            'name' => 'variableID',
-                            'width' => 'auto',
-                            'add' => 0,
-                            'edit' => [
-                                'type' => 'SelectVariable'
-                            ]
-                        ],
-                        [
-                            'caption' => 'Map Position X',
-                            'name' => 'x',
-                            'width' => '130px',
-                            'add' => 0,
-                            'edit' => [
-                                'type' => 'NumberSpinner'
-                            ]
-                        ],
-                        [
-                            'caption' => 'Map Position Y',
-                            'name' => 'y',
-                            'width' => '130px',
-                            'add' => 0,
-                            'edit' => [
-                                'type' => 'NumberSpinner'
-                            ]
-                        ]
-                    ],
-                    'values' => []
-                ],
-                [
-                    'type' => 'Select',
-                    'name' => 'PersonDetectionMode',
-                    'caption' => 'Person Detection Mode',
-                    'options' => [
-                        [
-                            'value' => 0,
-                            'caption' => 'Regular'
-                        ],
-                        [
-                            'value' => 1,
-                            'caption' => 'Simplified Single Person Detection'
-                        ]
-                    ]
                 ]
-            ]
+            ])
         ]);
     }
 
-    public function MessageSink($timestamp, $senderID, $message, $data) {
-        switch ($message) {
-            case 10603: // VM_UPDATE
-                // Variable is a Motion Sensor?
-                $triggeredRoom = 0;
-                $isMotionSensor = false;
-                foreach (json_decode($this->ReadPropertyString('MotionSensors'), true) as $motionSensor) {
-                    if ($motionSensor['variableID'] == $senderID) {
-                        $isMotionSensor = true;
-                        $triggeredRoom = $motionSensor['room'];
-                        break;
-                    }
-                }
-                // Variable is a Actor?
-                $isActor = false;
-                if (!$isMotionSensor) {
-                    foreach (json_decode($this->ReadPropertyString('Actors'), true) as $actor) {
-                        if ($actor['variableID'] == $senderID) {
-                            $isActor = true;
-                            $triggeredRoom = $actor['room'];
-                            break;
-                        }
-                    }
-                }
-                // Only update on positive motion sensor notifications, but on every actor action
-                if (($isMotionSensor && $data[0]) || $isActor) {
-                    $neighboringRooms = [];
-                    foreach (json_decode($this->ReadPropertyString('RoomConnections'), true) as $roomConnection) {
-                        if (($roomConnection['room1'] == $triggeredRoom) && (!in_array($roomConnection['room2'], $neighboringRooms))) {
-                            $neighboringRooms[] = $roomConnection['room2'];
-                        }
-
-                        if (($roomConnection['room2'] == $triggeredRoom) && (!in_array($roomConnection['room1'], $neighboringRooms))) {
-                            $neighboringRooms[] = $roomConnection['room1'];
-                        }
-                    }
-                    $this->SendDebug('Motion Sensor - Neighboring Rooms', json_encode($neighboringRooms), 0);
-
-                    $reportBlocked = false;
-                    if ($isMotionSensor) {
-                        $this->SendDebug('Sensor blocked? - Smoke Detectors', $this->ReadPropertyString('SmokeDetectors'), 0);
-                        $reportBlocked = false;
-                        switch ($this->ReadPropertyInteger('PersonDetectionMode')) {
-                            case 0: // Regular mode
-                                $smokeDetectedOwnRoom = false;
-                                $roomHasSmokeDetectors = false;
-                                $smokeDetectorRoomAbove = false;
-                                foreach (json_decode($this->ReadPropertyString('SmokeDetectors'), true) as $smokeDetector) {
-                                    if ($smokeDetector['room'] == $triggeredRoom) {
-                                        $this->SendDebug('Sensor blocked?', 'Smoke Detector in room', 0);
-                                        $roomHasSmokeDetectors = true;
-                                        if (GetValue($smokeDetector['variableID'])) {
-                                            $this->SendDebug('Sensor blocked?', 'Smoke Detector in room triggered!', 0);
-                                            $smokeDetectedOwnRoom = true;
-                                            break;
-                                        }
-                                    } elseif
-                                        (in_array($smokeDetector['room'], $neighboringRooms) &&
-                                            ($this->GetRoomLevelByIRISID($triggeredRoom) < $this->GetRoomLevelByIRISID($smokeDetector['room'])) &&
-                                            GetValue($smokeDetector['variableID'])){
-                                        $this->SendDebug('Sensor blocked?', 'Smoke Detector in room above triggered', 0);
-                                        $smokeDetectorRoomAbove = true;
-                                    }
-                                }
-                                $reportBlocked = $smokeDetectedOwnRoom || (!$roomHasSmokeDetectors && $smokeDetectorRoomAbove);
-                                break;
-
-                            case 1: // Simplified mode
-                                foreach (json_decode($this->ReadPropertyString('SmokeDetectors'), true) as $smokeDetector) {
-                                    if (GetValue($smokeDetector['variableID'])) {
-                                        $this->SendDebug('Sensor blocked? - simplified', 'Smoke Detector triggered!', 0);
-                                        $reportBlocked = true;
-                                        break;
-                                    }
-                                }
-                                break;
-                        }
-                    }
-
-                    if (!$reportBlocked) {
-
-                        switch ($this->ReadPropertyInteger('PersonDetectionMode')) {
-                            case 0: // Regular mode
-                                $this->SendDebug('Motion Sensor', 'Activated', 0);
-                                $freePersonID = 2000; // FIXME: For the time being, just start at 2000 to avoid overlap with other IDs
-                                $personsInSameRoom = [];
-                                $personsInNeighboringRooms = [];
-                                $detectedPersons = json_decode(GetValue($this->GetIDForIdent('DetectedPersons')), true);
-
-                                foreach ($detectedPersons as $personIDString => $personData) {
-                                    $personID = intval($personIDString);
-                                    if ($freePersonID <= $personID) {
-                                        $freePersonID = $personID + 1;
-                                    }
-
-                                    foreach ($personData as $likelyPosition) {
-                                        if (($likelyPosition['room'] == $triggeredRoom) && !in_array($personID, $personsInSameRoom)) {
-                                            $this->SendDebug('Motion Sensor', 'Detected in same room', 0);
-                                            $personsInSameRoom[] = $personID;
-                                        }
-
-                                        if (in_array($likelyPosition['room'], $neighboringRooms) && !in_array($personID, $personsInSameRoom)) {
-                                            $this->SendDebug('Motion Sensor', 'Detected in neighboring room', 0);
-                                            $personsInNeighboringRooms[] = $personID;
-                                        }
-                                    }
-                                }
-
-                                // There are persons in the same room as the motion sensor => Refresh probability to initial probability
-                                if (sizeof($personsInSameRoom) > 0) {
-                                    $this->SendDebug('Motion Sensor', 'Persons in same room', 0);
-                                    foreach ($personsInSameRoom as $personID) {
-                                        foreach ($detectedPersons[strval($personID)] as &$likelyPosition) {
-                                            if ($likelyPosition['room'] == $triggeredRoom) {
-                                                $this->AddPreviousLocation($likelyPosition);
-                                                $likelyPosition['probability'] = self::INITIAL_PROBABILITY_MOTION;
-                                                $likelyPosition['lastConfirmation'] = $data[3];
-                                                break;
-                                            }
-                                        }
-                                    }
-                                } elseif (sizeof($personsInNeighboringRooms) > 0) {
-                                    $this->SendDebug('Motion Sensor', 'Persons in neighboring rooms', 0);
-                                    $movePersonID = $personsInNeighboringRooms[0];
-                                    $currentProbability = 0;
-                                    $currentConfirmation = 0;
-                                    $currentNeighboringRoom = 0;
-                                    foreach ($personsInNeighboringRooms as $personID) {
-                                        foreach ($detectedPersons[strval($personID)] as &$likelyPosition) {
-                                            if (in_array($likelyPosition['room'], $neighboringRooms) &&
-                                                (($likelyPosition['probability'] > $currentProbability) ||
-                                                    (($likelyPosition['probability'] == $currentProbability) &&
-                                                        ($likelyPosition['lastConfirmation'] > $currentConfirmation)))) {
-                                                $movePersonID = $personID;
-                                                $currentProbability = $likelyPosition['probability'];
-                                                $currentConfirmation = $likelyPosition['lastConfirmation'];
-                                                $currentNeighboringRoom = $likelyPosition['room'];
-                                            }
-                                        }
-                                    }
-
-                                    foreach ($detectedPersons[strval($movePersonID)] as &$likelyPosition) {
-                                        if ($likelyPosition['room'] == $currentNeighboringRoom) {
-                                            // Check if a person moved back and forth for a fourth time, i.e., neighboring room -> this room -> neighboring room -> this room
-                                            // In that case, we assume that it's two persons and not a single one running back and forth
-                                            $createNewPerson = false;
-                                            if (sizeof($likelyPosition['previousLocations']) >= 3) {
-                                                $switchTimes = 0;
-                                                $currentlyCheckedRoom = $likelyPosition['room'];
-                                                $otherRoom = $triggeredRoom;
-                                                foreach ($likelyPosition['previousLocations'] as $previousLocation) {
-                                                    if (($currentlyCheckedRoom != $previousLocation['room']) && ($otherRoom != $previousLocation['room'])) {
-                                                        break;
-                                                    }
-
-                                                    if ($previousLocation['room'] == $otherRoom) {
-                                                        $switchTimes++;
-                                                        $otherRoom = $currentlyCheckedRoom;
-                                                        $currentlyCheckedRoom = $previousLocation['room'];
-                                                    }
-                                                }
-                                                $createNewPerson = ($switchTimes >= 3);
-                                            }
-                                            if ($createNewPerson) {
-                                                $this->SendDebug('Motion Sensor', 'Too much moving back and forth, so create a new one', 0);
-                                                $detectedPersons[strval($freePersonID)] = [[
-                                                    'previousLocations' => [],
-                                                    'room' => $triggeredRoom,
-                                                    'probability' => self::INITIAL_PROBABILITY_MOTION,
-                                                    'lastConfirmation' => $data[3]
-                                                ]];
-                                            }
-                                            else {
-                                                $this->AddPreviousLocation($likelyPosition);
-                                                $likelyPosition['room'] = $triggeredRoom;
-                                                $likelyPosition['probability'] = self::INITIAL_PROBABILITY_MOTION;
-                                                $likelyPosition['lastConfirmation'] = $data[3];
-                                            }
-                                            $this->SendDebug('Motion Sensor - New detected persons', json_encode($detectedPersons), 0);
-                                            break;
-                                        }
-
-                                    }
-                                } // New person required as no existing is near triggered motion sensor
-                                else {
-                                    $this->SendDebug('Motion Sensor', 'No person nearby, so create a new one', 0);
-                                    $detectedPersons[strval($freePersonID)] = [[
-                                        'previousLocations' => [],
-                                        'room' => $triggeredRoom,
-                                        'probability' => self::INITIAL_PROBABILITY_MOTION,
-                                        'lastConfirmation' => $data[3]
-                                    ]];
-                                }
-                                SetValue($this->GetIDForIdent('DetectedPersons'), json_encode($detectedPersons));
-                                break;
-
-                            case 1: // Simplified Single Person Mode
-                                $detectedPersons = json_decode(GetValue($this->GetIDForIdent('DetectedPersons')), true);
-                                // There is a person already, so move it to the other room
-                                if (isset($detectedPersons['2000'])) {
-                                    foreach ($detectedPersons['2000'] as &$likelyPosition) {
-                                        $this->AddPreviousLocation($likelyPosition);
-                                        $likelyPosition['room'] = $triggeredRoom;
-                                        $likelyPosition['probability'] = self::INITIAL_PROBABILITY_MOTION;
-                                        $likelyPosition['lastConfirmation'] = $data[3];
-
-                                    }
-                                }
-                                else {
-                                    $detectedPersons = [
-                                        '2000' => [[
-                                            'previousLocations' => [],
-                                            'room' => $triggeredRoom,
-                                            'probability' => self::INITIAL_PROBABILITY_MOTION,
-                                            'lastConfirmation' => $data[3]
-                                        ]]
-                                    ];
-                                }
-                                SetValue($this->GetIDForIdent('DetectedPersons'), json_encode($detectedPersons));
-                                break;
-
-                        }
-                    }
-                }
-
-                // Variable was a Smoke Detectors?
-                // Only check for newly triggered smoke detectors
-                if ($data[0] && $data[1]) {
-                    foreach (json_decode($this->ReadPropertyString('SmokeDetectors'), true) as $smokeDetector) {
-                        if ($smokeDetector['variableID'] == $senderID) {
-                            // Determine affected rooms = room with smoke detector and lower rooms without smoke detectors
-                            $affectedRooms = [$smokeDetector['room']];
-                            foreach (json_decode($this->ReadPropertyString('RoomConnections'), true) as $roomConnection) {
-                                $potentialLowerRoom = -1;
-                                if (($roomConnection['room1'] == $smokeDetector['room']) && (!in_array($roomConnection['room2'], $neighboringRooms))) {
-                                    $potentialLowerRoom = $roomConnection['room2'];
-                                }
-
-                                if (($roomConnection['room2'] == $smokeDetector['room']) && (!in_array($roomConnection['room1'], $neighboringRooms))) {
-                                    $potentialLowerRoom = $roomConnection['room1'];
-                                }
-
-                                if (($potentialLowerRoom != -1) && ($this->GetRoomLevelByIRISID($potentialLowerRoom) < $this->GetRoomLevelByIRISID($smokeDetector['room']))) {
-                                    $roomHasOwnSmokeDetector = false;
-                                    foreach (json_decode($this->ReadPropertyString('SmokeDetectors'), true) as $lowerSmokeDetector) {
-                                        if ($lowerSmokeDetector['room'] == $potentialLowerRoom) {
-                                            $roomHasOwnSmokeDetector = true;
-                                            break;
-                                        }
-                                    }
-                                    if (!$roomHasOwnSmokeDetector) {
-                                        $affectedRooms[] = $potentialLowerRoom;
-                                    }
-                                }
-                            }
-
-                            $update = false;
-                            $detectedPersons = json_decode(GetValue($this->GetIDForIdent('DetectedPersons')), true);
-                            foreach ($detectedPersons as $personIDString => &$personData) {
-                                foreach ($personData as $i => &$likelyPosition) {
-                                    if (in_array($likelyPosition['room'], $affectedRooms) && ($likelyPosition['lastConfirmation'] >= ($data[3] - self::SMOKE_DETECTOR_TURNBACK))) {
-                                        $this->SendDebug('Undo movement from smoke detector', 'Start', 0);
-                                        $update = true;
-                                        $usedIndex = 0;
-                                        while (($usedIndex < sizeof($likelyPosition['previousLocations'])) &&
-                                            in_array($likelyPosition['previousLocations'][$usedIndex], $affectedRooms) &&
-                                            ($likelyPosition['previousConfirmations'][$usedIndex] >= ($data[3] - self::SMOKE_DETECTOR_TURNBACK))) {
-                                            $usedIndex++;
-                                            $this->SendDebug('Undo movement from smoke detector, new usedIndex = ', $usedIndex, 0);
-                                        }
-
-                                        $this->SendDebug('Undo movement from smoke detector - previousLocations', json_encode($likelyPosition['previousLocations']), 0);
-                                        $this->SendDebug('Undo movement from smoke detector', 'Remove person', 0);
-                                        if ($usedIndex == sizeof($likelyPosition['previousLocations'])) {
-                                            $this->SendDebug('Undo movement from smoke detector', 'Remove person', 0);
-
-                                            unset($personData[$i]);
-                                            if (sizeof($personData) == 0) {
-                                                unset($detectedPersons[$personIDString]);
-                                            }
-                                        } else {
-                                            $this->SendDebug('Undo movement from smoke detector', 'Rollback person', 0);
-                                            $likelyPosition['room'] = $likelyPosition['previousLocations'][$usedIndex]['room'];
-                                            $likelyPosition['previousLocations'] = array_slice($likelyPosition['previousLocations'], $usedIndex + 1);
-                                            $this->SendDebug('Undo movement from smoke detector - New likely position', json_encode($likelyPosition), 0);
-                                        }
-                                    }
-                                }
-                            }
-
-                            if ($update) {
-                                $this->SendDebug('Write new value', json_encode($detectedPersons), 0);
-                                SetValue($this->GetIDForIdent('DetectedPersons'), json_encode($detectedPersons));
-                            }
-                        }
-                    }
-                }
-
-                $this->ApplyProbabilityDecay($data[3]);
-                break;
+    public function AddAlarm(string $alarmType) {
+        $currentAlarmTypes = json_decode($this->ReadAttributeString('AlarmTypes'), true);
+        if (!in_array($alarmType, $currentAlarmTypes)) {
+            $currentAlarmTypes[] = $alarmType;
+            $this->WriteAttributeString('AlarmTypes', json_encode($currentAlarmTypes));
         }
-    }
-
-    public function ChangePositionOfPerson($personID, $newRoomPosition) {
-        $persons = json_decode($this->ReadPropertyString('Persons'), true);
-
-        for ($i = 0; $i < sizeof($persons); $i++) {
-            if (intval($persons[$i]['id']) == $personID) {
-                $persons[$i]['currentLocation'] = $newRoomPosition;
-                break;
-            }
-        }
-
-        IPS_SetProperty($this->InstanceID, 'Persons', json_encode($persons));
-        IPS_ApplyChanges($this->InstanceID);
     }
 
     /**
@@ -1212,6 +832,7 @@ class IRiS extends WebHookModule {
 
         foreach (json_decode($this->ReadPropertyString('Rooms'), true) as $room) {
             $room['id'] = intval($room['id']);
+            unset($room['presence']);
             $result[] = $room;
         }
 
@@ -1223,10 +844,6 @@ class IRiS extends WebHookModule {
 
         foreach (json_decode($this->ReadPropertyString('SmokeDetectors'), true) as $smokeDetector) {
             $result[] = $this->ComputeDeviceInformation($smokeDetector, 'SmokeDetector', false);
-        }
-
-        foreach (json_decode($this->ReadPropertyString('MotionSensors'), true) as $motionSensor) {
-            $result[] = $this->ComputeDeviceInformation($motionSensor, 'MotionSensor', false);
         }
 
         foreach (json_decode($this->ReadPropertyString('TemperatureSensors'), true) as $temperatureSensor) {
@@ -1284,8 +901,6 @@ class IRiS extends WebHookModule {
     }
 
     private function ComputeStatus($ids) {
-        $this->ApplyProbabilityDecay(time());
-
         $persons = [];
         foreach (json_decode($this->ReadPropertyString('Persons'), true) as $person) {
             if ((sizeof($ids) == 0) || in_array(intval($person['id']), $ids)) {
@@ -1296,32 +911,24 @@ class IRiS extends WebHookModule {
             }
         }
 
-        foreach(json_decode(GetValue($this->GetIDForIdent('DetectedPersons')), true) as $personIDString => $personData) {
-            $personID = intval($personIDString);
-            if ((sizeof($ids) == 0) || in_array(intval($personIDString), $ids)) {
-
-                $likelyPositions = [];
-                foreach ($personData as $likelyPosition) {
-                    $likelyPositions[] = [
-                        'room' => $likelyPosition['room'],
-                        'probability' => $likelyPosition['probability']
-                    ];
-                }
-
-                $persons[] = [
-                    'id' => $personID,
-                    'present' => 'Present',
-                    'likelyPositions' => $likelyPositions
-                ];
-            }
-        }
-
         $rooms = [];
+        $nextPersonID = 100000;
         foreach (json_decode($this->ReadPropertyString('Rooms'), true) as $room) {
             if ((sizeof($ids) == 0) || in_array(intval($room['id']), $ids)) {
                 $rooms[] = [
                     'id' => intval($room['id']),
                     'status' => $this->ComputeStatusOfRoom($room['id'])
+                ];
+            }
+
+            if ($room['presence'] != 0 && GetValue($room['presence'])) {
+                $persons[] = [
+                    'id' => $nextPersonID,
+                    'present' => 'Present',
+                    'likelyPositions' => [
+                        'room' => intval($room['id']),
+                        'probability' => self::INITIAL_PROBABILITY_MOTION
+                    ]
                 ];
             }
         }
@@ -1366,19 +973,6 @@ class IRiS extends WebHookModule {
             }
         }
 
-        foreach (json_decode($this->ReadPropertyString('MotionSensors'), true) as $motionSensor) {
-            if ((sizeof($ids) == 0) || in_array(intval($motionSensor['id']), $ids)) {
-                $devices[] = [
-                    'id' => intval($motionSensor['id']),
-                    'lastUpdate' => IPS_GetVariable($motionSensor['variableID'])['VariableUpdated'],
-                    'lastChange' => IPS_GetVariable($motionSensor['variableID'])['VariableChanged'],
-                    'value' => [
-                        'motionDetected' => GetValueBoolean($motionSensor['variableID'])
-                    ]
-                ];
-            }
-        }
-
         return [
             'persons' => $persons,
             'rooms' => $rooms,
@@ -1407,25 +1001,22 @@ class IRiS extends WebHookModule {
     }
 
     private function ComputeAlarm() {
-        $alarmTypes = json_decode($this->ReadPropertyString('AlarmTypes'));
-        if (!in_array('Fire', $alarmTypes)) {
-            foreach (json_decode($this->ReadPropertyString('Rooms'), true) as $room) {
-                $roomStatus = $this->ComputeStatusOfRoom(intval($room['id']));
-                if (in_array('Smoked', $roomStatus) || in_array('Burning', $roomStatus)) {
-                    $alarmTypes[] = 'Fire';
-                    break;
-                }
-            }
-        }
-
-        IPS_SetProperty($this->InstanceID, 'AlarmTypes', json_encode($alarmTypes));
-        IPS_ApplyChanges($this->InstanceID);
+        $alarmTypes = json_decode($this->ReadAttributeString('AlarmTypes'), true);
 
         $result = [
             'alarm' => (sizeof($alarmTypes) > 0)
         ];
         if (sizeof($alarmTypes) > 0) {
             $result['types'] = $alarmTypes;
+            $presenceVariableID = $this->ReadPropertyInteger('PresenceGeneral');
+            if ($presenceVariableID != 0) {
+                if (GetValue($presenceVariableID)) {
+                    $result['lastPresence'] = time();
+                }
+                else {
+                    $result['lastPresence'] = IPS_GetVariable($presenceVariableID)['VariableChanged'];
+                }
+            }
         }
         return $result;
     }
@@ -1460,29 +1051,8 @@ class IRiS extends WebHookModule {
         return true;
     }
 
-    private function GetRoomLevelByIRISID($roomID) {
-        $floorID = -1;
-        foreach (json_decode($this->ReadPropertyString("Rooms"), true) as $value) {
-            if (intval($value['id']) == $roomID) {
-                $floorID = $value['floor'];
-            }
-        }
-        if ($floorID == -1) {
-            throw new Exception('Room not found');
-        }
-
-
-        foreach (json_decode($this->ReadPropertyString("Floors"), true) as $value) {
-            if (intval($value['id']) == $floorID) {
-                return $value['level'];
-            }
-        }
-
-        throw new Exception('Floor not found');
-    }
-
     private function GetVariableIDByIRISID($irisID) {
-        foreach (["SmokeDetectors", "MotionSensors", "Doors"] as $property) {
+        foreach (["SmokeDetectors", "Doors"] as $property) {
             foreach (json_decode($this->ReadPropertyString($property), true) as $value) {
                 if (intval($value['id']) == $irisID) {
                     return $value['variableID'];
@@ -1496,7 +1066,7 @@ class IRiS extends WebHookModule {
 
     private function FillIDs() {
         $availableID = 0;
-        foreach(["Floors", "Rooms", "Persons", "SmokeDetectors", "TemperatureSensors", "MotionSensors", "Doors", "Actors"] as $property) {
+        foreach(["Floors", "Rooms", "Persons", "SmokeDetectors", "TemperatureSensors", "Doors"] as $property) {
             foreach (json_decode($this->ReadPropertyString($property), true) as $value) {
                 if ($value['id'] != '') {
                     $availableID = max($availableID, intval($value['id']));
@@ -1506,7 +1076,7 @@ class IRiS extends WebHookModule {
         $availableID++; // AvailableID is now one more than the highest ID
 
         $changed = false;
-        foreach(["Floors", "Rooms", "Persons", "SmokeDetectors", "TemperatureSensors", "MotionSensors", "Doors", "Actors"] as $property) {
+        foreach(["Floors", "Rooms", "Persons", "SmokeDetectors", "TemperatureSensors", "Doors"] as $property) {
             $update = false;
             $data = json_decode($this->ReadPropertyString($property), true);
             foreach ($data as &$value) {
@@ -1528,44 +1098,6 @@ class IRiS extends WebHookModule {
             $this->SendDebug('Fill IDs', 'Changed -> Apply Changes again', 0);
             IPS_ApplyChanges($this->InstanceID);
         }
-    }
-
-    private function ApplyProbabilityDecay($timestamp) {
-        $this->SendDebug('Propability Decay - Timestamp', $timestamp, 0);
-        $detectedPersons = json_decode(GetValue($this->GetIDForIdent('DetectedPersons')), true);
-
-        foreach ($detectedPersons as $personIDString => &$personData) {
-            $this->SendDebug('Propability Decay - Person Data', json_encode($personData), 0);
-            foreach($personData as $i => &$likelyPosition) {
-
-                $updateProbability = true;
-                foreach (json_decode($this->ReadPropertyString('MotionSensors'), true) as $motionSensor) {
-                    if (($motionSensor['room'] == $likelyPosition['room']) && (GetValue($motionSensor['variableID']))) {
-                        $updateProbability = false;
-                    }
-                }
-
-                if ($updateProbability) {
-                    $likelyPosition['probability'] = self::INITIAL_PROBABILITY_MOTION - (($timestamp - $likelyPosition['lastConfirmation']) / self::DECAY_PROBABILITY_MOTION) * 0.01;
-                    if ($likelyPosition['probability'] <= 0) {
-                        unset($personData[$i]);
-                        if (sizeof($personData) == 0) {
-                            unset($detectedPersons[$personIDString]);
-                        }
-                    }
-                }
-            }
-        }
-
-        SetValue($this->GetIDForIdent('DetectedPersons'), json_encode($detectedPersons));
-    }
-
-    private function AddPreviousLocation(&$likelyPosition) {
-        array_unshift($likelyPosition['previousLocations'], [
-            'room' => $likelyPosition['room'],
-            'confirmation' => $likelyPosition['lastConfirmation']
-        ]);
-        $likelyPosition['previousLocations'] = array_slice($likelyPosition['previousLocations'], 0, self::STORED_PREVIOUS_DATA);
     }
 }
 
