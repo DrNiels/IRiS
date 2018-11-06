@@ -825,7 +825,20 @@ class IRiS extends WebHookModule {
                     ],
                     'values' => []
                 ]
-            ])
+            ]),
+            'actions' => [
+                [
+                    'type' => 'SelectFile',
+                    'name' => 'IFCFile',
+                    'caption' => 'IFC File'
+                ],
+                [
+                    'type' => 'Button',
+                    'caption' => 'Load IFC',
+                    'onClick' => 'IRIS_LoadIFC($id, $IFCFile);'
+                ]
+            ]
+
         ]);
     }
 
@@ -839,6 +852,144 @@ class IRiS extends WebHookModule {
 
     public function ResetAlarm() {
         $this->WriteAttributeString('AlarmTypes', '[]');
+    }
+
+    public function LoadIFC(string $IFCFile) {
+        IPS_SetConfiguration($this->InstanceID, json_encode([
+            'Address' => 'Steubenstraße 47a, 33100 Paderborn',
+            'BuildingMaterial' => 'Stone',
+            'HeatingType' => json_encode([
+                [
+                    'selected' => true
+                ],
+                [
+                    'selected' => false
+                ],
+                [
+                    'selected' => true
+                ],
+                [
+                    'selected' => false
+                ],
+                [
+                    'selected' => false
+                ],
+                [
+                    'selected' => false
+                ]
+            ]),
+            'PresenceGeneral' => 0,
+            'Floors' => json_encode([
+                [
+                    'id' => '1',
+                    'level' => 0,
+                    'name' => 'Erdgeschoss',
+                    'type' => 'GroundFloor',
+                    'map' => 'PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB2aWV3Qm94PSIwIDAgMTM0MCA4MjAiPgogIDxyZWN0IGlkPSJtYXBfcm9vbV8zIiBjbGFzcz0icm9vbSIgeD0iNTQ2IiB5PSIzOTQiIHdpZHRoPSIyNjAiIGhlaWdodD0iNDI1Ii8+CiAgPHJlY3QgaWQ9Im1hcF9yb29tXzQiIGNsYXNzPSJyb29tIiB4PSIyNDciIHk9IjQxMyIgd2lkdGg9IjI5OSIgaGVpZ2h0PSIzMzkiLz4KICA8cmVjdCBpZD0ibWFwX3Jvb21fNSIgY2xhc3M9InJvb20iIHg9IjgwNiIgeT0iNTcwIiB3aWR0aD0iMjg5IiBoZWlnaHQ9IjE4MiIvPgogIDxyZWN0IGlkPSJtYXBfcm9vbV84IiBjbGFzcz0icm9vbSIgeD0iODA2IiB5PSIzOTQiIHdpZHRoPSIxNjAiIGhlaWdodD0iOTAiLz4KICA8cGF0aCBpZD0ibWFwX3Jvb21fNiIgY2xhc3M9InJvb20iIGQ9Ik04MDYgNDg0IGgxNjAgdi05MCBoMTI5IHYxNzYgaC0yODkgWiIvPgogIDxwYXRoIGlkPSJtYXBfcm9vbV83IiBjbGFzcz0icm9vbSIgZD0iTSAyNDcgNzQgSDUyNSBWMCBoMjkyIFY3NCBoMjc4IHYzMjAgSDU0NiBWNDEzIEgyNDcgWiIvPgogIAo8cGF0aCBjbGFzcz0id2FsbCIgZD0iTTI0Nyw3NCBINTI1IFYwIGgyOTIgVjc0IGgyNzggdjY3OSBIODA2IHY2NiBINTQ2IHYtNjZIMjQ3IFY3NHoiLz4KICA8cGF0aCBjbGFzcz0id2FsbCIgZD0iTSAyNDcsNDEzIEg1NDYgVjM5NCBIMTA5NSIvPgogIDxwYXRoIGNsYXNzPSJ3YWxsIiBkPSJNIDgwNiwzOTQgdjkwIGggMTYwIHYtOTAiLz4KICA8bGluZSBjbGFzcz0id2FsbCIgeDE9IjgwNiIgeTE9IjQ4NCIgeDI9IjgwNiIgeTI9Ijc1MiIvPgogIDxsaW5lIGNsYXNzPSJ3YWxsIiB4MT0iNTQ2IiB5MT0iNDEzIiB4Mj0iNTQ2IiB5Mj0iNzUyIi8+CiAgPGxpbmUgY2xhc3M9IndhbGwiIHgxPSI4MDYiIHkxPSI1NzAiIHgyPSIxMDk1IiB5Mj0iNTcwIi8+CiAgCiAgPGxpbmUgY2xhc3M9ImRvb3IiIHgxPSI1NDYiIHkxPSI2NzAiIHgyPSI1NDYiIHkyPSI3NDAiLz4KICA8bGluZSBjbGFzcz0iZG9vciIgeDE9IjgwNiIgeTE9IjY3MCIgeDI9IjgwNiIgeTI9Ijc0MCIvPgogIDxsaW5lIGNsYXNzPSJkb29yIiB4MT0iODA2IiB5MT0iNDkyIiB4Mj0iODA2IiB5Mj0iNTYyIi8+CiAgPGxpbmUgY2xhc3M9ImRvb3IiIHgxPSI2MDYiIHkxPSI4MTkiIHgyPSI3MjYiIHkyPSI4MTkiLz4KICA8bGluZSBjbGFzcz0iZG9vciIgeDE9IjcxMiIgeTE9IjM5NCIgeDI9IjgwNiIgeTI9IjM5NCIvPgogIDxsaW5lIGNsYXNzPSJkb29yIiB4MT0iODIwIiB5MT0iMzk0IiB4Mj0iODkwIiB5Mj0iMzk0Ii8+CiAgPGxpbmUgaWQ9Im1hcF9kb29yXzE4IiBjbGFzcz0iZG9vciIgeDE9IjUzMSIgeTE9IjAiIHgyPSI4MTEiIHkyPSIwIi8+CiAgCjxsaW5lIGNsYXNzPSJ3aW5kb3ciIHgxPSIyNDciIHkxPSI0NzciIHgyPSIyNDciIHkyPSI2MDAiLz4KPGxpbmUgY2xhc3M9IndpbmRvdyIgeDE9IjEwOTUiIHkxPSIxOTkiIHgyPSIxMDk1IiB5Mj0iMzE1Ii8+CjxsaW5lIGNsYXNzPSJ3aW5kb3ciIHgxPSIxMDk1IiB5MT0iNTAwIiB4Mj0iMTA5NSIgeTI9IjU1MCIvPgo8bGluZSBjbGFzcz0id2luZG93IiB4MT0iMjQ3IiB5MT0iMjQ0IiB4Mj0iMjQ3IiB5Mj0iMzU1Ii8+CjxsaW5lIGNsYXNzPSJ3aW5kb3ciIHgxPSI0MTAiIHkxPSI3NCIgeDI9IjUxMCIgeTI9Ijc0Ii8+CjxsaW5lIGNsYXNzPSJ3aW5kb3ciIHgxPSI4MzIiIHkxPSI3NCIgeDI9IjkzMiIgeTI9Ijc0Ii8+CjxsaW5lIGNsYXNzPSJ3aW5kb3ciIHgxPSI0MTAiIHkxPSI3NTIiIHgyPSI1MTAiIHkyPSI3NTIiLz4KPGxpbmUgY2xhc3M9IndpbmRvdyIgeDE9IjgzMiIgeTE9Ijc1MiIgeDI9IjkzMiIgeTI9Ijc1MiIvPgogIAo8cmVjdCBjbGFzcz0ic3RhaXJzIiB4PSI2ODgiIHk9IjM5NSIgd2lkdGg9IjI0IiBoZWlnaHQ9IjkzIi8+CjxyZWN0IGNsYXNzPSJzdGFpcnMiIHg9IjY2NCIgeT0iMzk1IiB3aWR0aD0iMjQiIGhlaWdodD0iOTMiLz4KPHJlY3QgY2xhc3M9InN0YWlycyIgeD0iNjQwIiB5PSIzOTUiIHdpZHRoPSIyNCIgaGVpZ2h0PSI5MyIvPgo8cmVjdCBjbGFzcz0ic3RhaXJzIiB4PSI1NDciIHk9IjM5NSIgd2lkdGg9IjkzIiBoZWlnaHQ9IjkzIi8+CjxyZWN0IGNsYXNzPSJzdGFpcnMiIHg9IjU0NyIgeT0iNDg4IiB3aWR0aD0iOTMiIGhlaWdodD0iMjQiLz4KPHJlY3QgY2xhc3M9InN0YWlycyIgeD0iNTQ3IiB5PSI1MTIiIHdpZHRoPSI5MyIgaGVpZ2h0PSIyNCIvPgo8cmVjdCBjbGFzcz0ic3RhaXJzIiB4PSI1NDciIHk9IjUzNSIgd2lkdGg9IjkzIiBoZWlnaHQ9IjI0Ii8+CjxyZWN0IGNsYXNzPSJzdGFpcnMiIHg9IjU0NyIgeT0iNTU5IiB3aWR0aD0iOTMiIGhlaWdodD0iMjQiLz4KPC9zdmc+',
+                    'pixelsPerMeter' => 0,
+                    'north' => 0
+                ],
+                [
+                    'id' => '2',
+                    'level' => 0,
+                    'name' => 'Erster Stock',
+                    'type' => 'UpperFloor',
+                    'map' => 'PHN2ZyB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiCiB2aWV3Qm94PSIwIDAgMTM0MCA4MjAiPgo8cmVjdCBpZD0ibWFwX3Jvb21fOSIgY2xhc3M9InJvb20iIHg9IjU0NiIgeT0iMjYyIiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjU1NyIvPgo8cG9seWdvbiBpZD0ibWFwX3Jvb21fMTAiIGNsYXNzPSJyb29tIiBwb2ludHM9IjU0NiwyNjIgNTI1LDI2MiA1MjUsNzQgMjQ3LDc0IDI0Nyw0MTMgNTQ2LDQxMyAiLz4KPHJlY3QgaWQ9Im1hcF9yb29tXzExIiBjbGFzcz0icm9vbSIgeD0iNTI1IiB5PSIwIiB3aWR0aD0iMjkyIiBoZWlnaHQ9IjI2MiIvPgo8cmVjdCBpZD0ibWFwX3Jvb21fMTMiIGNsYXNzPSJyb29tIiB4PSI4MDYiIHk9IjQ4NSIgd2lkdGg9IjI4OSIgaGVpZ2h0PSIyNjgiLz4KPHJlY3QgaWQ9Im1hcF9yb29tXzE0IiBjbGFzcz0icm9vbSIgeD0iMjQ3IiB5PSI0MTMiIHdpZHRoPSIyOTkiIGhlaWdodD0iMzM5Ii8+Cjxwb2x5Z29uIGlkPSJtYXBfcm9vbV8xMiIgY2xhc3M9InJvb20iIHBvaW50cz0iODE3LDc0IDgxNywyNjIgODA2LDI2MiA4MDYsNDg1IDEwOTUsNDg1IDEwOTUsNzQgIi8+CiAgCjxwYXRoIGNsYXNzPSJ3YWxsIiBkPSJNMjQ3LDc0IEg1MjUgVjAgaDI5MiBWNzQgaDI3OCB2Njc5IEg4MDYgdjY2IEg1NDYgdi02NkgyNDcgVjc0eiIvPgo8cGF0aCBjbGFzcz0id2FsbCIgZD0iTTUyNSw3NCB2MTg4IGgyMSB2NDkwIi8+CjxwYXRoIGNsYXNzPSJ3YWxsIiBkPSJNODE3LDc0IHYxODggaC0xMSB2NDkwIi8+CjxsaW5lIGNsYXNzPSJ3YWxsIiB4MT0iNTQ2IiB5MT0iMjYyIiB4Mj0iODA2IiB5Mj0iMjYyIi8+CjxsaW5lIGNsYXNzPSJ3YWxsIiB4MT0iMTAxOCIgeTE9IjM0NyIgeDI9IjgwNiIgeTI9IjM0NyIvPgo8bGluZSBjbGFzcz0id2FsbCIgeDE9IjgwNiIgeTE9IjQ4NSIgeDI9IjEwOTUiIHkyPSI0ODUiLz4KPGxpbmUgY2xhc3M9IndhbGwiIHgxPSIyNDciIHkxPSI0MTMiIHgyPSI1NDYiIHkyPSI0MTMiLz4KICAKPGxpbmUgY2xhc3M9IndpbmRvdyIgeDE9IjU4MSIgeTE9IjAiIHgyPSI3ODIiIHkyPSIwIi8+CjxsaW5lIGNsYXNzPSJ3aW5kb3ciIHgxPSIyNDciIHkxPSI0NzciIHgyPSIyNDciIHkyPSI2MDAiLz4KPGxpbmUgY2xhc3M9IndpbmRvdyIgeDE9IjEwOTUiIHkxPSI1MTkiIHgyPSIxMDk1IiB5Mj0iNjM2Ii8+CjxsaW5lIGNsYXNzPSJ3aW5kb3ciIHgxPSIxMDk1IiB5MT0iMTk5IiB4Mj0iMTA5NSIgeTI9IjMxNSIvPgo8bGluZSBjbGFzcz0id2luZG93IiB4MT0iMTA5NSIgeTE9IjM4OSIgeDI9IjEwOTUiIHkyPSI0NDUiLz4KPGxpbmUgY2xhc3M9IndpbmRvdyIgeDE9IjU5NyIgeTE9IjgxOSIgeDI9Ijc2NCIgeTI9IjgxOSIvPgo8bGluZSBjbGFzcz0id2luZG93IiB4MT0iMjQ3IiB5MT0iMjQ0IiB4Mj0iMjQ3IiB5Mj0iMzU1Ii8+CiAgCjxsaW5lIGNsYXNzPSJkb29yIiB4MT0iODA2IiB5MT0iNTMwIiB4Mj0iODA2IiB5Mj0iNjAxIi8+CjxsaW5lIGNsYXNzPSJkb29yIiB4MT0iNTQ2IiB5MT0iNjU3IiB4Mj0iNTQ2IiB5Mj0iNzIxIi8+CjxsaW5lIGNsYXNzPSJkb29yIiB4MT0iNTQ2IiB5MT0iMjcwIiB4Mj0iNTQ2IiB5Mj0iMzM2Ii8+CjxsaW5lIGNsYXNzPSJkb29yIiB4MT0iODA2IiB5MT0iMjcwIiB4Mj0iODA2IiB5Mj0iMzM0Ii8+CjxsaW5lIGNsYXNzPSJkb29yIiB4MT0iNTgxIiB5MT0iMjYyIiB4Mj0iNjQ0IiB5Mj0iMjYyIi8+CjxsaW5lIGNsYXNzPSJkb29yIiB4MT0iMTAyNiIgeTE9IjQ4NSIgeDI9IjEwODQiIHkyPSI0ODUiLz4KICAKPHJlY3QgY2xhc3M9InN0YWlycyIgeD0iNjg4IiB5PSIzOTUiIHdpZHRoPSIyNCIgaGVpZ2h0PSI5MyIvPgo8cmVjdCBjbGFzcz0ic3RhaXJzIiB4PSI2NjQiIHk9IjM5NSIgd2lkdGg9IjI0IiBoZWlnaHQ9IjkzIi8+CjxyZWN0IGNsYXNzPSJzdGFpcnMiIHg9IjY0MCIgeT0iMzk1IiB3aWR0aD0iMjQiIGhlaWdodD0iOTMiLz4KPHJlY3QgY2xhc3M9InN0YWlycyIgeD0iNTQ3IiB5PSIzOTUiIHdpZHRoPSI5MyIgaGVpZ2h0PSI5MyIvPgo8cmVjdCBjbGFzcz0ic3RhaXJzIiB4PSI1NDciIHk9IjQ4OCIgd2lkdGg9IjkzIiBoZWlnaHQ9IjI0Ii8+CjxyZWN0IGNsYXNzPSJzdGFpcnMiIHg9IjU0NyIgeT0iNTEyIiB3aWR0aD0iOTMiIGhlaWdodD0iMjQiLz4KPHJlY3QgY2xhc3M9InN0YWlycyIgeD0iNTQ3IiB5PSI1MzUiIHdpZHRoPSI5MyIgaGVpZ2h0PSIyNCIvPgo8cmVjdCBjbGFzcz0ic3RhaXJzIiB4PSI1NDciIHk9IjU1OSIgd2lkdGg9IjkzIiBoZWlnaHQ9IjI0Ii8+Cjwvc3ZnPgo=',
+                    'pixelsPerMeter' => 0,
+                    'north' => 0
+                ]
+            ]),
+            'Rooms' => json_encode([
+                [
+                    'id' => '3',
+                    'floor' => 1,
+                    'name' => 'Diele',
+                    'type' => 'Misc',
+                    'presence' => 0
+                ],
+                [
+                    'id' => '4',
+                    'floor' => 1,
+                    'name' => 'Büro',
+                    'type' => 'WorkRoom',
+                    'presence' => 0
+                ],
+                [
+                    'id' => '5',
+                    'floor' => 1,
+                    'name' => 'Wohnen/Essen',
+                    'type' => 'LivingRoom',
+                    'presence' => 0
+                ],
+                [
+                    'id' => '6',
+                    'floor' => 1,
+                    'name' => 'Vorrat',
+                    'type' => 'StoreRoom',
+                    'presence' => 0
+                ],
+                [
+                    'id' => '7',
+                    'floor' => 1,
+                    'name' => 'DU/WC',
+                    'type' => 'BathRoom',
+                    'presence' => 0
+                ],
+                [
+                    'id' => '8',
+                    'floor' => 1,
+                    'name' => 'HWR',
+                    'type' => 'WorkRoom',
+                    'presence' => 0
+                ],
+                [
+                    'id' => '9',
+                    'floor' => 2,
+                    'name' => 'Galerie',
+                    'type' => 'Misc',
+                    'presence' => 0
+                ],
+                [
+                    'id' => '10',
+                    'floor' => 2,
+                    'name' => 'Arbeiten 1',
+                    'type' => 'WorkRoom',
+                    'presence' => 0
+                ],
+                [
+                    'id' => '11',
+                    'floor' => 2,
+                    'name' => 'Arbeiten 2',
+                    'type' => 'WorkRoom',
+                    'presence' => 0
+                ],
+                [
+                    'id' => '12',
+                    'floor' => 2,
+                    'name' => 'Zimmer/Besprechung',
+                    'type' => 'WorkRoom',
+                    'presence' => 0
+                ],
+                [
+                    'id' => '13',
+                    'floor' => 2,
+                    'name' => 'Schlafen/Ankleide',
+                    'type' => 'BedRoom',
+                    'presence' => 0
+                ],
+                [
+                    'id' => '14',
+                    'floor' => 2,
+                    'name' => 'Bad',
+                    'type' => 'BathRoom',
+                    'presence' => 0
+                ]
+            ]),
+            'SmokeDetectors' => '[]',
+            'TemperatureSensors' => '[]',
+            'Doors' => '[]'
+        ]));
+        IPS_ApplyChanges($this->InstanceID);
     }
 
     /**
