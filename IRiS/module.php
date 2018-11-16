@@ -770,11 +770,15 @@ class IRiS extends WebHookModule {
             $result[] = $person;
         }
 
-        foreach (json_decode(GetValue($this->GetIDForIdent('DetectedPersons')), true) as $personIDString => $personData) {
-            $result[] = [
-                'id' => intval($personIDString),
-                'coreData' => false
-            ];
+        $nextPersonID = 100000;
+        foreach (json_decode($this->ReadPropertyString('Rooms'), true) as $room) {
+            if ($room['presence'] != 0 && GetValue($room['presence'])) {
+                $persons[] = [
+                    'id' => $nextPersonID,
+                    'coreData' => false
+                ];
+                $nextPersonID++;
+            }
         }
 
         return $result;
@@ -896,6 +900,7 @@ class IRiS extends WebHookModule {
                         'probability' => self::INITIAL_PROBABILITY_MOTION
                     ]
                 ];
+                $nextPersonID++;
             }
         }
 
