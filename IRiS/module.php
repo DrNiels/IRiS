@@ -915,6 +915,7 @@ class IRiS extends WebHookModule {
                     ]
                 ])
             ]));
+            IPS_ApplyChanges($presenceControlID);
 
             $presenceValuesGeneral[] = [
                 'VariableID' => IPS_GetObjectIDByIdent('PresenceVariable', $presenceControlID),
@@ -927,12 +928,13 @@ class IRiS extends WebHookModule {
             $lights[] = $lightValueID;
         }
 
-        $presenceControlGeneralID = $presenceControlID = IPS_CreateInstance('{B263AFBC-950F-462C-95B1-E3ACACE0B9B0}');
-        IPS_SetName($presenceControlID, 'Presence Control');
-        IPS_SetConfiguration($presenceControlID, json_encode([
+        $presenceControlGeneralID = IPS_CreateInstance('{B263AFBC-950F-462C-95B1-E3ACACE0B9B0}');
+        IPS_SetName($presenceControlGeneralID, 'Presence Control');
+        IPS_SetConfiguration($presenceControlGeneralID, json_encode([
             'TriggerVariables' => json_encode([]),
             'ValueVariables' => json_encode($presenceValuesGeneral)
         ]));
+        IPS_ApplyChanges($presenceControlGeneralID);
 
         $alertID = IPS_CreateInstance('{AC0566EB-7384-4F06-A445-292255B0D1B2}');
         IPS_SetName($alertID, 'Alarm');
@@ -943,7 +945,7 @@ class IRiS extends WebHookModule {
         IPS_ApplyChanges($alertID);
 
         $notificationID = IPS_CreateInstance('{57677DB8-4C2A-4673-A267-B083A0755CDE}');
-        IPS_SetName($alertID, 'Alarmierung');
+        IPS_SetName($notificationID, 'Alarmierung');
         IPS_SetConfiguration($notificationID, json_encode([
             'InputTriggerID' => IPS_GetObjectIDByIdent('Output', $alertID),
             'NotificationLevels' => json_encode([
