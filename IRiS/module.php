@@ -974,6 +974,8 @@ class IRiS extends WebHookModule {
                 ]
             ])
         ]));
+        RequestAction(IPS_GetObjectIDByIdent('Active', $notificationID), true);
+
         IPS_ApplyChanges($notificationID);
 
         IPS_SetConfiguration($this->InstanceID, json_encode([
@@ -1115,21 +1117,21 @@ class IRiS extends WebHookModule {
                     'y' => 70
                 ],
                 [
-                    'id' => '15',
+                    'id' => '16',
                     'room' => 8,
                     'variableID' => $alertGateInput[1]['ID'],
                     'x' => 200,
                     'y' => 70
                 ],
                 [
-                    'id' => '15',
+                    'id' => '17',
                     'room' => 4,
                     'variableID' => $alertGateInput[2]['ID'],
                     'x' => 100,
                     'y' => 170
                 ],
                 [
-                    'id' => '15',
+                    'id' => '18',
                     'room' => 3,
                     'variableID' => $alertGateInput[3]['ID'],
                     'x' => 200,
@@ -1140,34 +1142,36 @@ class IRiS extends WebHookModule {
             'Doors' => '[]',
             'Lights' => json_encode([
                 [
-                    'id' => '15',
+                    'id' => '19',
                     'room' => 5,
                     'variableID' => $lights[0],
                     'x' => 150,
                     'y' => 70
                 ],
                 [
-                    'id' => '15',
+                    'id' => '20',
                     'room' => 8,
                     'variableID' => $lights[1],
                     'x' => 250,
                     'y' => 70
                 ],
                 [
-                    'id' => '15',
+                    'id' => '21',
                     'room' => 4,
                     'variableID' => $lights[2],
                     'x' => 150,
                     'y' => 170
                 ],
                 [
-                    'id' => '15',
+                    'id' => '22',
                     'room' => 3,
                     'variableID' => $lights[3],
                     'x' => 250,
                     'y' => 170
                 ]
-            ])
+            ]),
+            'EmergencyOff' => '[]',
+            'Shutters' => '[]'
         ]));
         IPS_ApplyChanges($this->InstanceID);
     }
