@@ -1,8 +1,12 @@
 <?
 
 include __DIR__ . "/../libs/WebHookModule.php";
+include_once __DIR__ . '/helper/autoload.php';
 
 class IRiS extends WebHookModule {
+
+    use HelperDimDevice;
+    use HelperSwitchDevice;
 
     const INITIAL_PROBABILITY_MOTION = 0.8;
     const DECAY_PROBABILITY_MOTION = 90; // Subtract probability by 0.01 every 90 seconds if there is no motion trigger = Completely removed after 2 hours
@@ -28,6 +32,9 @@ class IRiS extends WebHookModule {
         $this->RegisterPropertyString("SmokeDetectors", "[]");
         $this->RegisterPropertyString("TemperatureSensors", "[]");
         $this->RegisterPropertyString("Doors", "[]");
+        $this->RegisterPropertyString("Lights", "[]");
+        $this->RegisterPropertyString("EmergencyOff", "[]");
+        $this->RegisterPropertyString("Shutters", "[]");
 
         $this->RegisterAttributeString("AlarmTypes", "[]");
     }
@@ -652,6 +659,171 @@ class IRiS extends WebHookModule {
                         ]
                     ],
                     'values' => []
+                ],
+                [
+                    'type' => 'List',
+                    'name' => 'Lights',
+                    'rowCount' => 10,
+                    'caption' => 'Lights',
+                    'add' => true,
+                    'delete' => true,
+                    'columns' => [
+                        [
+                            'caption' => 'ID',
+                            'name' => 'id',
+                            'width' => '75px',
+                            'add' => '',
+                            'save' => true
+                        ],
+                        [
+                            'caption' => 'Room',
+                            'name' => 'room',
+                            'width' => '200px',
+                            'add' => $roomAdd,
+                            'edit' => [
+                                'type' => 'Select',
+                                'options' => $roomOptions
+                            ]
+                        ],
+                        [
+                            'caption' => 'Variable',
+                            'name' => 'variableID',
+                            'width' => 'auto',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectVariable'
+                            ]
+                        ],
+                        [
+                            'caption' => 'Map Position X',
+                            'name' => 'x',
+                            'width' => '130px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ],
+                        [
+                            'caption' => 'Map Position Y',
+                            'name' => 'y',
+                            'width' => '130px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ]
+                    ],
+                    'values' => []
+                ],
+                [
+                    'type' => 'List',
+                    'name' => 'EmergencyOff',
+                    'rowCount' => 10,
+                    'caption' => 'Emergency Off',
+                    'add' => true,
+                    'delete' => true,
+                    'columns' => [
+                        [
+                            'caption' => 'ID',
+                            'name' => 'id',
+                            'width' => '75px',
+                            'add' => '',
+                            'save' => true
+                        ],
+                        [
+                            'caption' => 'Room',
+                            'name' => 'room',
+                            'width' => '200px',
+                            'add' => $roomAdd,
+                            'edit' => [
+                                'type' => 'Select',
+                                'options' => $roomOptions
+                            ]
+                        ],
+                        [
+                            'caption' => 'Variable',
+                            'name' => 'variableID',
+                            'width' => 'auto',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectVariable'
+                            ]
+                        ],
+                        [
+                            'caption' => 'Map Position X',
+                            'name' => 'x',
+                            'width' => '130px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ],
+                        [
+                            'caption' => 'Map Position Y',
+                            'name' => 'y',
+                            'width' => '130px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ]
+                    ],
+                    'values' => []
+                ],
+                [
+                    'type' => 'List',
+                    'name' => 'Shutters',
+                    'rowCount' => 10,
+                    'caption' => 'Shutters',
+                    'add' => true,
+                    'delete' => true,
+                    'columns' => [
+                        [
+                            'caption' => 'ID',
+                            'name' => 'id',
+                            'width' => '75px',
+                            'add' => '',
+                            'save' => true
+                        ],
+                        [
+                            'caption' => 'Room',
+                            'name' => 'room',
+                            'width' => '200px',
+                            'add' => $roomAdd,
+                            'edit' => [
+                                'type' => 'Select',
+                                'options' => $roomOptions
+                            ]
+                        ],
+                        [
+                            'caption' => 'Variable',
+                            'name' => 'variableID',
+                            'width' => 'auto',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectVariable'
+                            ]
+                        ],
+                        [
+                            'caption' => 'Map Position X',
+                            'name' => 'x',
+                            'width' => '130px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ],
+                        [
+                            'caption' => 'Map Position Y',
+                            'name' => 'y',
+                            'width' => '130px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ]
+                    ],
+                    'values' => []
                 ]
             ])
         ]);
@@ -826,6 +998,24 @@ class IRiS extends WebHookModule {
             $result[] = $this->ComputeDeviceInformation($door, 'Door', $switchable);
         }
 
+        foreach (json_decode($this->ReadPropertyString('Lights'), true) as $light) {
+            $variable = IPS_GetVariable($light['variableID']);
+            $switchable = ($variable['VariableCustomAction'] > 10000) || ($variable['VariableAction'] > 10000);
+            $result[] = $this->ComputeDeviceInformation($light, 'Light', $switchable);
+        }
+
+        foreach (json_decode($this->ReadPropertyString('EmergencyOff'), true) as $emergencyOff) {
+            $variable = IPS_GetVariable($emergencyOff['variableID']);
+            $switchable = ($variable['VariableCustomAction'] > 10000) || ($variable['VariableAction'] > 10000);
+            $result[] = $this->ComputeDeviceInformation($emergencyOff, 'EmergencyOff', $switchable);
+        }
+
+        foreach (json_decode($this->ReadPropertyString('Shutters'), true) as $shutter) {
+            $variable = IPS_GetVariable($shutter['variableID']);
+            $switchable = ($variable['VariableCustomAction'] > 10000) || ($variable['VariableAction'] > 10000);
+            $result[] = $this->ComputeDeviceInformation($shutter, 'Shutter', $switchable);
+        }
+
         return $result;
     }
 
@@ -944,6 +1134,45 @@ class IRiS extends WebHookModule {
             }
         }
 
+        foreach (json_decode($this->ReadPropertyString('Lights'), true) as $light) {
+            if ((sizeof($ids) == 0) || in_array(intval($light['id']), $ids)) {
+                $devices[] = [
+                    'id' => intval($light['id']),
+                    'lastUpdate' => IPS_GetVariable($light['variableID'])['VariableUpdated'],
+                    'lastChange' => IPS_GetVariable($light['variableID'])['VariableChanged'],
+                    'value' => [
+                        'on' => GetValueBoolean($light['variableID'])
+                    ]
+                ];
+            }
+        }
+
+        foreach (json_decode($this->ReadPropertyString('EmergencyOff'), true) as $emergencyOff) {
+            if ((sizeof($ids) == 0) || in_array(intval($emergencyOff['id']), $ids)) {
+                $devices[] = [
+                    'id' => intval($emergencyOff['id']),
+                    'lastUpdate' => IPS_GetVariable($emergencyOff['variableID'])['VariableUpdated'],
+                    'lastChange' => IPS_GetVariable($emergencyOff['variableID'])['VariableChanged'],
+                    'value' => [
+                        'active' => GetValueBoolean($emergencyOff['variableID'])
+                    ]
+                ];
+            }
+        }
+
+        foreach (json_decode($this->ReadPropertyString('Shutters'), true) as $shutter) {
+            if ((sizeof($ids) == 0) || in_array(intval($shutter['id']), $ids)) {
+                $devices[] = [
+                    'id' => intval($shutter['id']),
+                    'lastUpdate' => IPS_GetVariable($shutter['variableID'])['VariableUpdated'],
+                    'lastChange' => IPS_GetVariable($shutter['variableID'])['VariableChanged'],
+                    'value' => [
+                        'shutterPosition' => floatval(self::getDimValue($shutter['variableID'])) * 0.01
+                    ]
+                ];
+            }
+        }
+
         return [
             'persons' => $persons,
             'rooms' => $rooms,
@@ -994,36 +1223,23 @@ class IRiS extends WebHookModule {
 
     private function SwitchVariable($irisID, $value) {
         $variableID = $this->GetVariableIDByIRISID($irisID);
+        $type = $this->GetDeviceTypeByIRISID($irisID);
 
-        if (!IPS_VariableExists($variableID)) {
-            return false;
+        switch ($type) {
+            case "Door":
+            case "Light":
+            case "EmergencyOff":
+                return self::switchDevice($variableID, $value);
+
+            case "Shutter":
+                return self::dimDevice($variableID, $value * 100);
         }
 
-        $targetVariable = IPS_GetVariable($variableID);
-
-        if ($targetVariable['VariableCustomAction'] != 0) {
-            $profileAction = $targetVariable['VariableCustomAction'];
-        } else {
-            $profileAction = $targetVariable['VariableAction'];
-        }
-
-        if ($profileAction < 10000) {
-            return false;
-        }
-
-        if (IPS_InstanceExists($profileAction)) {
-            IPS_RunScriptText('IPS_RequestAction(' . var_export($profileAction, true) . ', ' . var_export(IPS_GetObject($variableID)['ObjectIdent'], true) . ', ' . var_export($value, true) . ');');
-        } elseif (IPS_ScriptExists($profileAction)) {
-            IPS_RunScriptEx($profileAction, ['VARIABLE' => $variableID, 'VALUE' => $value, 'SENDER' => 'IRiS']);
-        } else {
-            return false;
-        }
-
-        return true;
+        return false;
     }
 
     private function GetVariableIDByIRISID($irisID) {
-        foreach (["SmokeDetectors", "Doors"] as $property) {
+        foreach (["SmokeDetectors", "Doors", "Lights", "EmergencyOff", "Shutters"] as $property) {
             foreach (json_decode($this->ReadPropertyString($property), true) as $value) {
                 if (intval($value['id']) == $irisID) {
                     return $value['variableID'];
@@ -1035,9 +1251,38 @@ class IRiS extends WebHookModule {
         return 0;
     }
 
+    private function GetDeviceTypeByIRISID($irisID) {
+        foreach (["SmokeDetectors", "Doors", "Lights", "EmergencyOff", "Shutters"] as $property) {
+            foreach (json_decode($this->ReadPropertyString($property), true) as $value) {
+                if (intval($value['id']) == $irisID) {
+                    switch ($property) {
+                        case "SmokeDetectors":
+                            return "SmokeDetector";
+
+                        case "Doors":
+                            return "Door";
+
+                        case "Lights":
+                            return "Light";
+
+                        case "EmergencyOff":
+                            return "EmergencyOff";
+
+                        case "Shutters":
+                            return "Shutter";
+                    }
+                }
+            }
+        }
+
+        $this->SendDebug("IRiS - Error", "Device Type for IRiS ID does not exist", 0);
+        return "Invalid";
+    }
+
     private function FillIDs() {
         $availableID = 0;
-        foreach(["Floors", "Rooms", "Persons", "SmokeDetectors", "TemperatureSensors", "Doors"] as $property) {
+        $propertyNames = ["Floors", "Rooms", "Persons", "SmokeDetectors", "TemperatureSensors", "Doors", "Lights", "EmergencyOff", "Shutters"];
+        foreach($propertyNames as $property) {
             foreach (json_decode($this->ReadPropertyString($property), true) as $value) {
                 if ($value['id'] != '') {
                     $availableID = max($availableID, intval($value['id']));
@@ -1047,7 +1292,7 @@ class IRiS extends WebHookModule {
         $availableID++; // AvailableID is now one more than the highest ID
 
         $changed = false;
-        foreach(["Floors", "Rooms", "Persons", "SmokeDetectors", "TemperatureSensors", "Doors"] as $property) {
+        foreach($propertyNames as $property) {
             $update = false;
             $data = json_decode($this->ReadPropertyString($property), true);
             foreach ($data as &$value) {
