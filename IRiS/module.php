@@ -855,6 +855,126 @@ class IRiS extends WebHookModule {
     }
 
     public function LoadIFC(string $IFCFile) {
+        $presenceValuesGeneral = [];
+        $alertGateInput = [];
+        $lights = [];
+
+        $groundFloorID = IPS_GetObjectIDByName('Erdgeschoss', 0);
+        foreach (['Wohnen/Essen', 'HWR', 'Büro', 'Diele'] as $room) {
+            $roomID = IPS_GetObjectIDByName($room, $groundFloorID);
+            $lightValueID = IPS_GetObjectIDByIdent('Value', IPS_GetObjectIDByName('Licht', $roomID));
+            $lightSwitchValueID = IPS_GetObjectIDByIdent('Value', IPS_GetObjectIDByName('Lichtschalter', $roomID));
+            $smokeDetectorValueID = IPS_GetObjectIDByIdent('Value', IPS_GetObjectIDByName('Rauchmelder', $roomID));
+            $presenceValueID = 0;
+            if (@IPS_GetObjectIDByName('Radarsensor', $roomID) !== false) {
+                $presenceValueID = IPS_GetObjectIDByIdent('Value', IPS_GetObjectIDByName('Radarsensor', $roomID));
+            }
+            else {
+                $priValueID = IPS_GetObjectIDByIdent('Value', IPS_GetObjectIDByName('PRI Sensor', $roomID));
+                $filterID = IPS_CreateInstance('{AC0566EB-7384-4F06-A445-292255B0D1B2}');
+                IPS_SetParent($filterID, $roomID);
+                IPS_SetName($filterID, 'Präsenzfilter');
+                IPS_SetConfiguration($filterID, json_encode([
+                    'Calculation' => 2,
+                    'Input' => json_encode([
+                        [
+                            'ID' => $priValueID,
+                            'Invert' => false
+                        ],
+                        [
+                            'ID' => $smokeDetectorValueID,
+                            'Invert' => true
+                        ]
+                    ])
+                ]));
+                IPS_ApplyChanges($filterID);
+                $presenceValueID = IPS_GetObjectIDByIdent('Output', $filterID);
+            }
+
+            $this->SendDebug("presenceValueID", $presenceValueID, 0);
+            $presenceControlID = IPS_CreateInstance('{B263AFBC-950F-462C-95B1-E3ACACE0B9B0}');
+            IPS_SetParent($presenceControlID, $roomID);
+            IPS_SetName($presenceControlID, 'Presence Control');
+            IPS_SetConfiguration($presenceControlID, json_encode([
+                'TriggerVariables' => json_encode([
+                    [
+                        'VariableID' => $lightSwitchValueID,
+                        'Validity' => 0,
+                        'Invert' => false
+                    ],
+                    [
+                        'VariableID' => $lightSwitchValueID,
+                        'Validity' => 0,
+                        'Invert' => true
+                    ]
+                ]),
+                'ValueVariables' => json_encode([
+                    [
+                        'VariableID' => $presenceValueID,
+                        'Invert' => false
+                    ]
+                ])
+            ]));
+
+            $presenceValuesGeneral[] = [
+                'VariableID' => IPS_GetObjectIDByIdent('PresenceVariable', $presenceControlID),
+                'Invert' => false
+            ];
+            $alertGateInput[] = [
+                'ID' => $smokeDetectorValueID,
+                'Invert' => false
+            ];
+            $lights[] = $lightValueID;
+        }
+
+        $presenceControlGeneralID = $presenceControlID = IPS_CreateInstance('{B263AFBC-950F-462C-95B1-E3ACACE0B9B0}');
+        IPS_SetName($presenceControlID, 'Presence Control');
+        IPS_SetConfiguration($presenceControlID, json_encode([
+            'TriggerVariables' => json_encode([]),
+            'ValueVariables' => json_encode($presenceValuesGeneral)
+        ]));
+
+        $alertID = IPS_CreateInstance('{AC0566EB-7384-4F06-A445-292255B0D1B2}');
+        IPS_SetName($alertID, 'Alarm');
+        IPS_SetConfiguration($alertID, json_encode([
+            'Calculation' => 1,
+            'Input' => json_encode($alertGateInput)
+        ]));
+        IPS_ApplyChanges($alertID);
+
+        $notificationID = IPS_CreateInstance('{57677DB8-4C2A-4673-A267-B083A0755CDE}');
+        IPS_SetName($alertID, 'Alarmierung');
+        IPS_SetConfiguration($notificationID, json_encode([
+            'InputTriggerID' => IPS_GetObjectIDByIdent('Output', $alertID),
+            'NotificationLevels' => json_encode([
+                [
+                    'duration' => 30,
+                    'actions' => [
+                        [
+                            'actionType' => 1,
+                            'recipient' => strval(IPS_GetInstanceListByModuleID('{3565B1F2-8F7B-4311-A4B6-1BF1D868F39E}')[0]),
+                            'title' => 'Feuer erkannt',
+                            'message' => 'Wenn Sie diese Mitteilung nicht in den nächsten 30 Sekunden bestätigen, werden die Einsatzkräfte alarmiert',
+                            'messageVariable' => 0
+                        ]
+                    ]
+                ],
+                [
+                    'duration' => 0,
+                    'actions' => [
+                        [
+                            'actionType' => 2,
+                            'recipient' => strval($this->InstanceID),
+                            'title' => '',
+                            'message' => '',
+                            'messageVariable' => 0
+                        ]
+                    ]
+                ]
+            ])
+        ]));
+        IPS_ApplyChanges($notificationID);
+
         IPS_SetConfiguration($this->InstanceID, json_encode([
             'Address' => 'Steubenstraße 47a, 33100 Paderborn',
             'BuildingMaterial' => 'Stone',
@@ -878,7 +998,7 @@ class IRiS extends WebHookModule {
                     'selected' => false
                 ]
             ]),
-            'PresenceGeneral' => 0,
+            'PresenceGeneral' => $presenceControlGeneralID,
             'Floors' => json_encode([
                 [
                     'id' => '1',
@@ -886,7 +1006,7 @@ class IRiS extends WebHookModule {
                     'name' => 'Erdgeschoss',
                     'type' => 'GroundFloor',
                     'map' => 'PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB2aWV3Qm94PSIwIDAgMTM0MCA4MjAiPgogIDxyZWN0IGlkPSJtYXBfcm9vbV8zIiBjbGFzcz0icm9vbSIgeD0iNTQ2IiB5PSIzOTQiIHdpZHRoPSIyNjAiIGhlaWdodD0iNDI1Ii8+CiAgPHJlY3QgaWQ9Im1hcF9yb29tXzQiIGNsYXNzPSJyb29tIiB4PSIyNDciIHk9IjQxMyIgd2lkdGg9IjI5OSIgaGVpZ2h0PSIzMzkiLz4KICA8cmVjdCBpZD0ibWFwX3Jvb21fNSIgY2xhc3M9InJvb20iIHg9IjgwNiIgeT0iNTcwIiB3aWR0aD0iMjg5IiBoZWlnaHQ9IjE4MiIvPgogIDxyZWN0IGlkPSJtYXBfcm9vbV84IiBjbGFzcz0icm9vbSIgeD0iODA2IiB5PSIzOTQiIHdpZHRoPSIxNjAiIGhlaWdodD0iOTAiLz4KICA8cGF0aCBpZD0ibWFwX3Jvb21fNiIgY2xhc3M9InJvb20iIGQ9Ik04MDYgNDg0IGgxNjAgdi05MCBoMTI5IHYxNzYgaC0yODkgWiIvPgogIDxwYXRoIGlkPSJtYXBfcm9vbV83IiBjbGFzcz0icm9vbSIgZD0iTSAyNDcgNzQgSDUyNSBWMCBoMjkyIFY3NCBoMjc4IHYzMjAgSDU0NiBWNDEzIEgyNDcgWiIvPgogIAo8cGF0aCBjbGFzcz0id2FsbCIgZD0iTTI0Nyw3NCBINTI1IFYwIGgyOTIgVjc0IGgyNzggdjY3OSBIODA2IHY2NiBINTQ2IHYtNjZIMjQ3IFY3NHoiLz4KICA8cGF0aCBjbGFzcz0id2FsbCIgZD0iTSAyNDcsNDEzIEg1NDYgVjM5NCBIMTA5NSIvPgogIDxwYXRoIGNsYXNzPSJ3YWxsIiBkPSJNIDgwNiwzOTQgdjkwIGggMTYwIHYtOTAiLz4KICA8bGluZSBjbGFzcz0id2FsbCIgeDE9IjgwNiIgeTE9IjQ4NCIgeDI9IjgwNiIgeTI9Ijc1MiIvPgogIDxsaW5lIGNsYXNzPSJ3YWxsIiB4MT0iNTQ2IiB5MT0iNDEzIiB4Mj0iNTQ2IiB5Mj0iNzUyIi8+CiAgPGxpbmUgY2xhc3M9IndhbGwiIHgxPSI4MDYiIHkxPSI1NzAiIHgyPSIxMDk1IiB5Mj0iNTcwIi8+CiAgCiAgPGxpbmUgY2xhc3M9ImRvb3IiIHgxPSI1NDYiIHkxPSI2NzAiIHgyPSI1NDYiIHkyPSI3NDAiLz4KICA8bGluZSBjbGFzcz0iZG9vciIgeDE9IjgwNiIgeTE9IjY3MCIgeDI9IjgwNiIgeTI9Ijc0MCIvPgogIDxsaW5lIGNsYXNzPSJkb29yIiB4MT0iODA2IiB5MT0iNDkyIiB4Mj0iODA2IiB5Mj0iNTYyIi8+CiAgPGxpbmUgY2xhc3M9ImRvb3IiIHgxPSI2MDYiIHkxPSI4MTkiIHgyPSI3MjYiIHkyPSI4MTkiLz4KICA8bGluZSBjbGFzcz0iZG9vciIgeDE9IjcxMiIgeTE9IjM5NCIgeDI9IjgwNiIgeTI9IjM5NCIvPgogIDxsaW5lIGNsYXNzPSJkb29yIiB4MT0iODIwIiB5MT0iMzk0IiB4Mj0iODkwIiB5Mj0iMzk0Ii8+CiAgPGxpbmUgaWQ9Im1hcF9kb29yXzE4IiBjbGFzcz0iZG9vciIgeDE9IjUzMSIgeTE9IjAiIHgyPSI4MTEiIHkyPSIwIi8+CiAgCjxsaW5lIGNsYXNzPSJ3aW5kb3ciIHgxPSIyNDciIHkxPSI0NzciIHgyPSIyNDciIHkyPSI2MDAiLz4KPGxpbmUgY2xhc3M9IndpbmRvdyIgeDE9IjEwOTUiIHkxPSIxOTkiIHgyPSIxMDk1IiB5Mj0iMzE1Ii8+CjxsaW5lIGNsYXNzPSJ3aW5kb3ciIHgxPSIxMDk1IiB5MT0iNTAwIiB4Mj0iMTA5NSIgeTI9IjU1MCIvPgo8bGluZSBjbGFzcz0id2luZG93IiB4MT0iMjQ3IiB5MT0iMjQ0IiB4Mj0iMjQ3IiB5Mj0iMzU1Ii8+CjxsaW5lIGNsYXNzPSJ3aW5kb3ciIHgxPSI0MTAiIHkxPSI3NCIgeDI9IjUxMCIgeTI9Ijc0Ii8+CjxsaW5lIGNsYXNzPSJ3aW5kb3ciIHgxPSI4MzIiIHkxPSI3NCIgeDI9IjkzMiIgeTI9Ijc0Ii8+CjxsaW5lIGNsYXNzPSJ3aW5kb3ciIHgxPSI0MTAiIHkxPSI3NTIiIHgyPSI1MTAiIHkyPSI3NTIiLz4KPGxpbmUgY2xhc3M9IndpbmRvdyIgeDE9IjgzMiIgeTE9Ijc1MiIgeDI9IjkzMiIgeTI9Ijc1MiIvPgogIAo8cmVjdCBjbGFzcz0ic3RhaXJzIiB4PSI2ODgiIHk9IjM5NSIgd2lkdGg9IjI0IiBoZWlnaHQ9IjkzIi8+CjxyZWN0IGNsYXNzPSJzdGFpcnMiIHg9IjY2NCIgeT0iMzk1IiB3aWR0aD0iMjQiIGhlaWdodD0iOTMiLz4KPHJlY3QgY2xhc3M9InN0YWlycyIgeD0iNjQwIiB5PSIzOTUiIHdpZHRoPSIyNCIgaGVpZ2h0PSI5MyIvPgo8cmVjdCBjbGFzcz0ic3RhaXJzIiB4PSI1NDciIHk9IjM5NSIgd2lkdGg9IjkzIiBoZWlnaHQ9IjkzIi8+CjxyZWN0IGNsYXNzPSJzdGFpcnMiIHg9IjU0NyIgeT0iNDg4IiB3aWR0aD0iOTMiIGhlaWdodD0iMjQiLz4KPHJlY3QgY2xhc3M9InN0YWlycyIgeD0iNTQ3IiB5PSI1MTIiIHdpZHRoPSI5MyIgaGVpZ2h0PSIyNCIvPgo8cmVjdCBjbGFzcz0ic3RhaXJzIiB4PSI1NDciIHk9IjUzNSIgd2lkdGg9IjkzIiBoZWlnaHQ9IjI0Ii8+CjxyZWN0IGNsYXNzPSJzdGFpcnMiIHg9IjU0NyIgeT0iNTU5IiB3aWR0aD0iOTMiIGhlaWdodD0iMjQiLz4KPC9zdmc+',
-                    'pixelsPerMeter' => 0,
+                    'pixelsPerMeter' => 1,
                     'north' => 0
                 ],
                 [
@@ -895,7 +1015,7 @@ class IRiS extends WebHookModule {
                     'name' => 'Erster Stock',
                     'type' => 'UpperFloor',
                     'map' => 'PHN2ZyB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiCiB2aWV3Qm94PSIwIDAgMTM0MCA4MjAiPgo8cmVjdCBpZD0ibWFwX3Jvb21fOSIgY2xhc3M9InJvb20iIHg9IjU0NiIgeT0iMjYyIiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjU1NyIvPgo8cG9seWdvbiBpZD0ibWFwX3Jvb21fMTAiIGNsYXNzPSJyb29tIiBwb2ludHM9IjU0NiwyNjIgNTI1LDI2MiA1MjUsNzQgMjQ3LDc0IDI0Nyw0MTMgNTQ2LDQxMyAiLz4KPHJlY3QgaWQ9Im1hcF9yb29tXzExIiBjbGFzcz0icm9vbSIgeD0iNTI1IiB5PSIwIiB3aWR0aD0iMjkyIiBoZWlnaHQ9IjI2MiIvPgo8cmVjdCBpZD0ibWFwX3Jvb21fMTMiIGNsYXNzPSJyb29tIiB4PSI4MDYiIHk9IjQ4NSIgd2lkdGg9IjI4OSIgaGVpZ2h0PSIyNjgiLz4KPHJlY3QgaWQ9Im1hcF9yb29tXzE0IiBjbGFzcz0icm9vbSIgeD0iMjQ3IiB5PSI0MTMiIHdpZHRoPSIyOTkiIGhlaWdodD0iMzM5Ii8+Cjxwb2x5Z29uIGlkPSJtYXBfcm9vbV8xMiIgY2xhc3M9InJvb20iIHBvaW50cz0iODE3LDc0IDgxNywyNjIgODA2LDI2MiA4MDYsNDg1IDEwOTUsNDg1IDEwOTUsNzQgIi8+CiAgCjxwYXRoIGNsYXNzPSJ3YWxsIiBkPSJNMjQ3LDc0IEg1MjUgVjAgaDI5MiBWNzQgaDI3OCB2Njc5IEg4MDYgdjY2IEg1NDYgdi02NkgyNDcgVjc0eiIvPgo8cGF0aCBjbGFzcz0id2FsbCIgZD0iTTUyNSw3NCB2MTg4IGgyMSB2NDkwIi8+CjxwYXRoIGNsYXNzPSJ3YWxsIiBkPSJNODE3LDc0IHYxODggaC0xMSB2NDkwIi8+CjxsaW5lIGNsYXNzPSJ3YWxsIiB4MT0iNTQ2IiB5MT0iMjYyIiB4Mj0iODA2IiB5Mj0iMjYyIi8+CjxsaW5lIGNsYXNzPSJ3YWxsIiB4MT0iMTAxOCIgeTE9IjM0NyIgeDI9IjgwNiIgeTI9IjM0NyIvPgo8bGluZSBjbGFzcz0id2FsbCIgeDE9IjgwNiIgeTE9IjQ4NSIgeDI9IjEwOTUiIHkyPSI0ODUiLz4KPGxpbmUgY2xhc3M9IndhbGwiIHgxPSIyNDciIHkxPSI0MTMiIHgyPSI1NDYiIHkyPSI0MTMiLz4KICAKPGxpbmUgY2xhc3M9IndpbmRvdyIgeDE9IjU4MSIgeTE9IjAiIHgyPSI3ODIiIHkyPSIwIi8+CjxsaW5lIGNsYXNzPSJ3aW5kb3ciIHgxPSIyNDciIHkxPSI0NzciIHgyPSIyNDciIHkyPSI2MDAiLz4KPGxpbmUgY2xhc3M9IndpbmRvdyIgeDE9IjEwOTUiIHkxPSI1MTkiIHgyPSIxMDk1IiB5Mj0iNjM2Ii8+CjxsaW5lIGNsYXNzPSJ3aW5kb3ciIHgxPSIxMDk1IiB5MT0iMTk5IiB4Mj0iMTA5NSIgeTI9IjMxNSIvPgo8bGluZSBjbGFzcz0id2luZG93IiB4MT0iMTA5NSIgeTE9IjM4OSIgeDI9IjEwOTUiIHkyPSI0NDUiLz4KPGxpbmUgY2xhc3M9IndpbmRvdyIgeDE9IjU5NyIgeTE9IjgxOSIgeDI9Ijc2NCIgeTI9IjgxOSIvPgo8bGluZSBjbGFzcz0id2luZG93IiB4MT0iMjQ3IiB5MT0iMjQ0IiB4Mj0iMjQ3IiB5Mj0iMzU1Ii8+CiAgCjxsaW5lIGNsYXNzPSJkb29yIiB4MT0iODA2IiB5MT0iNTMwIiB4Mj0iODA2IiB5Mj0iNjAxIi8+CjxsaW5lIGNsYXNzPSJkb29yIiB4MT0iNTQ2IiB5MT0iNjU3IiB4Mj0iNTQ2IiB5Mj0iNzIxIi8+CjxsaW5lIGNsYXNzPSJkb29yIiB4MT0iNTQ2IiB5MT0iMjcwIiB4Mj0iNTQ2IiB5Mj0iMzM2Ii8+CjxsaW5lIGNsYXNzPSJkb29yIiB4MT0iODA2IiB5MT0iMjcwIiB4Mj0iODA2IiB5Mj0iMzM0Ii8+CjxsaW5lIGNsYXNzPSJkb29yIiB4MT0iNTgxIiB5MT0iMjYyIiB4Mj0iNjQ0IiB5Mj0iMjYyIi8+CjxsaW5lIGNsYXNzPSJkb29yIiB4MT0iMTAyNiIgeTE9IjQ4NSIgeDI9IjEwODQiIHkyPSI0ODUiLz4KICAKPHJlY3QgY2xhc3M9InN0YWlycyIgeD0iNjg4IiB5PSIzOTUiIHdpZHRoPSIyNCIgaGVpZ2h0PSI5MyIvPgo8cmVjdCBjbGFzcz0ic3RhaXJzIiB4PSI2NjQiIHk9IjM5NSIgd2lkdGg9IjI0IiBoZWlnaHQ9IjkzIi8+CjxyZWN0IGNsYXNzPSJzdGFpcnMiIHg9IjY0MCIgeT0iMzk1IiB3aWR0aD0iMjQiIGhlaWdodD0iOTMiLz4KPHJlY3QgY2xhc3M9InN0YWlycyIgeD0iNTQ3IiB5PSIzOTUiIHdpZHRoPSI5MyIgaGVpZ2h0PSI5MyIvPgo8cmVjdCBjbGFzcz0ic3RhaXJzIiB4PSI1NDciIHk9IjQ4OCIgd2lkdGg9IjkzIiBoZWlnaHQ9IjI0Ii8+CjxyZWN0IGNsYXNzPSJzdGFpcnMiIHg9IjU0NyIgeT0iNTEyIiB3aWR0aD0iOTMiIGhlaWdodD0iMjQiLz4KPHJlY3QgY2xhc3M9InN0YWlycyIgeD0iNTQ3IiB5PSI1MzUiIHdpZHRoPSI5MyIgaGVpZ2h0PSIyNCIvPgo8cmVjdCBjbGFzcz0ic3RhaXJzIiB4PSI1NDciIHk9IjU1OSIgd2lkdGg9IjkzIiBoZWlnaHQ9IjI0Ii8+Cjwvc3ZnPgo=',
-                    'pixelsPerMeter' => 0,
+                    'pixelsPerMeter' => 1,
                     'north' => 0
                 ]
             ]),
@@ -905,21 +1025,21 @@ class IRiS extends WebHookModule {
                     'floor' => 1,
                     'name' => 'Diele',
                     'type' => 'Misc',
-                    'presence' => 0
+                    'presence' => $presenceValuesGeneral[3]['VariableID']
                 ],
                 [
                     'id' => '4',
                     'floor' => 1,
                     'name' => 'Büro',
                     'type' => 'WorkRoom',
-                    'presence' => 0
+                    'presence' => $presenceValuesGeneral[2]['VariableID']
                 ],
                 [
                     'id' => '5',
                     'floor' => 1,
                     'name' => 'Wohnen/Essen',
                     'type' => 'LivingRoom',
-                    'presence' => 0
+                    'presence' => $presenceValuesGeneral[0]['VariableID']
                 ],
                 [
                     'id' => '6',
@@ -940,7 +1060,7 @@ class IRiS extends WebHookModule {
                     'floor' => 1,
                     'name' => 'HWR',
                     'type' => 'WorkRoom',
-                    'presence' => 0
+                    'presence' => $presenceValuesGeneral[1]['VariableID']
                 ],
                 [
                     'id' => '9',
@@ -985,9 +1105,68 @@ class IRiS extends WebHookModule {
                     'presence' => 0
                 ]
             ]),
-            'SmokeDetectors' => '[]',
+            'SmokeDetectors' => json_encode([
+                [
+                    'id' => '15',
+                    'room' => 5,
+                    'variableID' => $alertGateInput[0]['ID'],
+                    'x' => 100,
+                    'y' => 70
+                ],
+                [
+                    'id' => '15',
+                    'room' => 8,
+                    'variableID' => $alertGateInput[1]['ID'],
+                    'x' => 200,
+                    'y' => 70
+                ],
+                [
+                    'id' => '15',
+                    'room' => 4,
+                    'variableID' => $alertGateInput[2]['ID'],
+                    'x' => 100,
+                    'y' => 170
+                ],
+                [
+                    'id' => '15',
+                    'room' => 3,
+                    'variableID' => $alertGateInput[3]['ID'],
+                    'x' => 200,
+                    'y' => 170
+                ]
+            ]),
             'TemperatureSensors' => '[]',
-            'Doors' => '[]'
+            'Doors' => '[]',
+            'Lights' => json_encode([
+                [
+                    'id' => '15',
+                    'room' => 5,
+                    'variableID' => $lights[0],
+                    'x' => 150,
+                    'y' => 70
+                ],
+                [
+                    'id' => '15',
+                    'room' => 8,
+                    'variableID' => $lights[1],
+                    'x' => 250,
+                    'y' => 70
+                ],
+                [
+                    'id' => '15',
+                    'room' => 4,
+                    'variableID' => $lights[2],
+                    'x' => 150,
+                    'y' => 170
+                ],
+                [
+                    'id' => '15',
+                    'room' => 3,
+                    'variableID' => $lights[3],
+                    'x' => 250,
+                    'y' => 170
+                ]
+            ])
         ]));
         IPS_ApplyChanges($this->InstanceID);
     }
