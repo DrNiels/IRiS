@@ -837,6 +837,10 @@ class IRiS extends WebHookModule {
         }
     }
 
+    public function ResetAlarm() {
+        $this->WriteAttributeString('AlarmTypes', '[]');
+    }
+
     /**
      * This function will be called by the hook control. Visibility should be protected!
      */
