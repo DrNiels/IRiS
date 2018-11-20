@@ -72,35 +72,36 @@ class IRiS extends WebHookModule {
                 $map = substr($map, 0, $bracketPosition) .
                     ' width="800"><style>
                     .room {
-                      fill: red;
-                      fill-opacity: 0.3;
+                        fill: #ffffff;
+                        fill-opacity: 0.6;
                     }
                     
                     .wall {
-                      stroke: black;
-                      fill: none;
+                        stroke: black;
+                        stroke-width: 5;
+                        fill: none;
                     }
                     
                     .door {
-                      stroke: blue;
-                      stroke-width: 3;
+                        stroke: #ffffff;
+                        stroke-width: 8;
                     }
                     
                     .window {
-                      stroke: green;
-                      stroke-width: 5;
-                    }
-                    
-                    .window-2 {
-                      stroke: purple;
-                      stroke-width: 5;
+                        stroke: #ffffff;
+                        stroke-width: 3;
                     }
                     
                     .stairs {
-                      stroke: grey;
-                      fill: white
+                        fill: #008351;
+                        stroke: #000000;
                     }
-                    </style>' .
+                    
+                    .background {
+                        fill: lightgray;
+                    }
+                    </style>
+                    <rect class="background" height="100%" width="100%" x="0" y="0"/>' .
                     substr($map, $bracketPosition + 1);
 
                 $floorMaps[] = [
