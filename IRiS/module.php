@@ -98,7 +98,7 @@ class IRiS extends WebHookModule {
                     }
                     
                     .background {
-                        fill: lightgray;
+                        fill: #dddddd;
                     }
                     </style>
                     <rect class="background" height="100%" width="100%" x="0" y="0"/>' .
