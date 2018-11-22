@@ -1090,10 +1090,10 @@ class IRiS extends WebHookModule {
                 $persons[] = [
                     'id' => $nextPersonID,
                     'present' => 'Present',
-                    'likelyPositions' => [
+                    'likelyPositions' => [[
                         'room' => intval($room['id']),
                         'probability' => self::INITIAL_PROBABILITY_MOTION
-                    ]
+                    ]]
                 ];
                 $nextPersonID++;
             }
