@@ -51,6 +51,9 @@
             "Map Position Y": "Karte Position Y",
             "Temperature Sensors": "Temperatursensoren",
             "Doors": "Türen",
+            "Lights": "Lampen",
+            "Emergency Off": "Notaus",
+            "Shutters": "Rolladen",
             "IFC File": "IFC Datei",
             "Load IFC": "IFC laden"
         }
