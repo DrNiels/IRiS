@@ -910,6 +910,8 @@ class IRiS extends WebHookModule {
             'id' => $id
         ]);
         $this->SendDebug("IRiS - Response", $response, 0);
+        header("Content-Length: " . strlen($response));
+        header("Content-Type: application/json");
         echo $response;
     }
 
