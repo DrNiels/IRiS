@@ -40,6 +40,7 @@
             "Work Room": "Arbeitszimmer",
             "Basement Room": "Kellerzimmer",
             "Garage": "Garage",
+            "Hall": "Flur",
             "Presence": "Anwesenheit",
             "Persons": "Personen",
             "Birthday": "Geburtstag",
@@ -54,6 +55,8 @@
             "Lights": "Lampen",
             "Emergency Off": "Notaus",
             "Shutters": "Rolladen",
+            "Switches/Buttons": "Schalter/Taster",
+            "Motion Sensors": "Bewegungsmelder",
             "IFC File": "IFC Datei",
             "Load IFC": "IFC laden"
         }
