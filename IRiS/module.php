@@ -1014,7 +1014,8 @@ class IRiS extends WebHookModule {
                 break;
 
             case 'resetAlarm':
-                $this->ReturnResult($request['id'], $this->ComputeAlarm());
+                $this->ResetAlarm();
+                $this->ReturnResult($request['id'], true);
                 break;
 
             default:
