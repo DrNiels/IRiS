@@ -32,6 +32,7 @@ class IRiS extends WebHookModule {
         $this->RegisterPropertyString("SmokeDetectors", "[]");
         $this->RegisterPropertyString("TemperatureSensors", "[]");
         $this->RegisterPropertyString("Doors", "[]");
+        $this->RegisterPropertyString("Windows", "[]");
         $this->RegisterPropertyString("Lights", "[]");
         $this->RegisterPropertyString("EmergencyOff", "[]");
         $this->RegisterPropertyString("Shutters", "[]");
@@ -669,6 +670,61 @@ class IRiS extends WebHookModule {
                 ],
                 [
                     'type' => 'List',
+                    'name' => 'Windows',
+                    'rowCount' => 10,
+                    'caption' => 'Windows',
+                    'add' => true,
+                    'delete' => true,
+                    'columns' => [
+                        [
+                            'caption' => 'ID',
+                            'name' => 'id',
+                            'width' => '75px',
+                            'add' => '',
+                            'save' => true
+                        ],
+                        [
+                            'caption' => 'Room',
+                            'name' => 'room',
+                            'width' => '200px',
+                            'add' => $roomAdd,
+                            'edit' => [
+                                'type' => 'Select',
+                                'options' => $roomOptions
+                            ]
+                        ],
+                        [
+                            'caption' => 'Variable',
+                            'name' => 'variableID',
+                            'width' => 'auto',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectVariable'
+                            ]
+                        ],
+                        [
+                            'caption' => 'Map Position X',
+                            'name' => 'x',
+                            'width' => '130px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ],
+                        [
+                            'caption' => 'Map Position Y',
+                            'name' => 'y',
+                            'width' => '130px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ]
+                    ],
+                    'values' => []
+                ],
+                [
+                    'type' => 'List',
                     'name' => 'Lights',
                     'rowCount' => 10,
                     'caption' => 'Lights',
@@ -1126,6 +1182,12 @@ class IRiS extends WebHookModule {
             $result[] = $this->ComputeDeviceInformation($door, 'Door', $switchable);
         }
 
+        foreach (json_decode($this->ReadPropertyString('Windows'), true) as $window) {
+            $variable = IPS_GetVariable($window['variableID']);
+            $switchable = ($variable['VariableCustomAction'] > 10000) || ($variable['VariableAction'] > 10000);
+            $result[] = $this->ComputeDeviceInformation($window, 'Window', $switchable);
+        }
+
         foreach (json_decode($this->ReadPropertyString('Lights'), true) as $light) {
             $variable = IPS_GetVariable($light['variableID']);
             $switchable = ($variable['VariableCustomAction'] > 10000) || ($variable['VariableAction'] > 10000);
@@ -1213,7 +1275,8 @@ class IRiS extends WebHookModule {
             if ((sizeof($ids) == 0) || in_array(intval($room['id']), $ids)) {
                 $rooms[] = [
                     'id' => intval($room['id']),
-                    'status' => $this->ComputeStatusOfRoom($room['id'])
+                    'status' => $this->ComputeStatusOfRoom($room['id']),
+                    'lastPresence' => $this->GetLastPresence($room['presence'])
                 ];
             }
 
@@ -1265,6 +1328,19 @@ class IRiS extends WebHookModule {
                     'lastChange' => IPS_GetVariable($door['variableID'])['VariableChanged'],
                     'value' => [
                         'open' => GetValueBoolean($door['variableID'])
+                    ]
+                ];
+            }
+        }
+
+        foreach (json_decode($this->ReadPropertyString('Windows'), true) as $window) {
+            if ((sizeof($ids) == 0) || in_array(intval($window['id']), $ids)) {
+                $devices[] = [
+                    'id' => intval($window['id']),
+                    'lastUpdate' => IPS_GetVariable($window['variableID'])['VariableUpdated'],
+                    'lastChange' => IPS_GetVariable($window['variableID'])['VariableChanged'],
+                    'value' => [
+                        'open' => GetValueBoolean($window['variableID'])
                     ]
                 ];
             }
@@ -1360,6 +1436,20 @@ class IRiS extends WebHookModule {
         return $status;
     }
 
+    private function GetLastPresence($variableID) {
+        if ($variableID != 0) {
+            if (GetValue($variableID)) {
+                return time();
+            }
+            else {
+                return IPS_GetVariable($variableID)['VariableChanged'];
+            }
+        }
+        else {
+            return 0;
+        }
+    }
+
     private function ComputeAlarm() {
         $alarmTypes = json_decode($this->ReadAttributeString('AlarmTypes'), true);
 
@@ -1368,15 +1458,7 @@ class IRiS extends WebHookModule {
         ];
         if (sizeof($alarmTypes) > 0) {
             $result['types'] = $alarmTypes;
-            $presenceVariableID = $this->ReadPropertyInteger('PresenceGeneral');
-            if ($presenceVariableID != 0) {
-                if (GetValue($presenceVariableID)) {
-                    $result['lastPresence'] = time();
-                }
-                else {
-                    $result['lastPresence'] = IPS_GetVariable($presenceVariableID)['VariableChanged'];
-                }
-            }
+            $result['lastPresence'] = $this->GetLastPresence($this->ReadPropertyInteger('PresenceGeneral'));
         }
         return $result;
     }
@@ -1399,7 +1481,7 @@ class IRiS extends WebHookModule {
     }
 
     private function GetVariableIDByIRISID($irisID) {
-        foreach (["SmokeDetectors", "Doors", "Lights", "EmergencyOff", "Shutters", "SwitchesButtons", "MotionSensors"] as $property) {
+        foreach (["SmokeDetectors", "Doors", "Windows", "Lights", "EmergencyOff", "Shutters", "SwitchesButtons", "MotionSensors"] as $property) {
             foreach (json_decode($this->ReadPropertyString($property), true) as $value) {
                 if (intval($value['id']) == $irisID) {
                     return $value['variableID'];
@@ -1412,7 +1494,7 @@ class IRiS extends WebHookModule {
     }
 
     private function GetDeviceTypeByIRISID($irisID) {
-        foreach (["SmokeDetectors", "Doors", "Lights", "EmergencyOff", "Shutters", "SwitchesButtons", "MotionSensors"] as $property) {
+        foreach (["SmokeDetectors", "Doors", "Windows", "Lights", "EmergencyOff", "Shutters", "SwitchesButtons", "MotionSensors"] as $property) {
             foreach (json_decode($this->ReadPropertyString($property), true) as $value) {
                 if (intval($value['id']) == $irisID) {
                     switch ($property) {
@@ -1421,6 +1503,9 @@ class IRiS extends WebHookModule {
 
                         case "Doors":
                             return "Door";
+
+                        case "Windows":
+                            return "Window";
 
                         case "Lights":
                             return "Light";
@@ -1447,7 +1532,7 @@ class IRiS extends WebHookModule {
 
     private function FillIDs() {
         $availableID = 0;
-        $propertyNames = ["Floors", "Rooms", "Persons", "SmokeDetectors", "TemperatureSensors", "Doors", "Lights", "EmergencyOff", "Shutters", "SwitchesButtons", "MotionSensors"];
+        $propertyNames = ["Floors", "Rooms", "Persons", "SmokeDetectors", "TemperatureSensors", "Doors", "Windows", "Lights", "EmergencyOff", "Shutters", "SwitchesButtons", "MotionSensors"];
         foreach($propertyNames as $property) {
             foreach (json_decode($this->ReadPropertyString($property), true) as $value) {
                 if ($value['id'] != '') {
