@@ -39,6 +39,11 @@ class IRiS extends WebHookModule {
         $this->RegisterPropertyString("SwitchesButtons", "[]");
         $this->RegisterPropertyString("MotionSensors", "[]");
 
+        $this->RegisterPropertyBoolean("AutomaticReactionOpenShuttersActivate", true);
+        $this->RegisterPropertyString("AutomaticReactionOpenShuttersExceptions", "[]");
+        $this->RegisterPropertyBoolean("AutomaticReactionOpenExternalDoorsActivate", true);
+        $this->RegisterPropertyString("AutomaticReactionOpenExternalDoorsDoors", "[]");
+
         $this->RegisterAttributeString("AlarmTypes", "[]");
     }
 
@@ -119,9 +124,6 @@ class IRiS extends WebHookModule {
                 ];
 
             }
-
-
-
         }
         $floorAdd = 0;
         if (sizeof($floorOptions) > 0) {
@@ -161,6 +163,34 @@ class IRiS extends WebHookModule {
         $roomAdd = 0;
         if (sizeof($roomOptions) > 0) {
             $roomAdd = $roomOptions[0]['value'];
+        }
+
+        $shutterOptions = [];
+        $shutters = json_decode($this->ReadPropertyString('Shutters'), true);
+        foreach($shutters as $shutter) {
+            $shutterOptions[] = [
+                'caption' => IPS_GetLocation($shutter['variableID']),
+                'value' => $shutter['variableID']
+            ];
+        }
+        $shutterAdd = 0;
+        if (sizeof($shutterOptions) > 0) {
+            $shutterAdd = $shutterOptions[0]['value'];
+        }
+
+        $switchableDoorOptions = [];
+        $doors = json_decode($this->ReadPropertyString('Doors'), true);
+        foreach($doors as $door) {
+            if ($this->HasAction($door['variableID'])) {
+                $switchableDoorOptions[] = [
+                    'caption' => IPS_GetLocation($door['variableID']),
+                    'value' => $door['variableID']
+                ];
+            }
+        }
+        $switchableDoorAdd = 0;
+        if (sizeof($switchableDoorOptions) > 0) {
+            $switchableDoorAdd = $switchableDoorOptions[0]['value'];
         }
 
         return json_encode([
@@ -997,6 +1027,88 @@ class IRiS extends WebHookModule {
                         ]
                     ],
                     'values' => []
+                ],
+                [
+                    'type' => 'ExpansionPanel',
+                    'caption' => 'Automatic Reaction on Alert',
+                    'items' => [
+                        [
+                            'type' => 'RowLayout',
+                            'items' => [
+                                [
+                                    'type' => 'CheckBox',
+                                    'name' => 'AutomaticReactionOpenShuttersActivate',
+                                    'caption' => 'Open all shutters'
+                                ],
+                                [
+                                    'type' => 'PopupButton',
+                                    'caption' => 'Exceptions',
+                                    'popup' => [
+                                        'caption' => 'Shutters that should not open',
+                                        'items' => [
+                                            [
+                                                'type' => 'List',
+                                                'name' => 'AutomaticReactionOpenShuttersExceptions',
+                                                'add' => true,
+                                                'delete' => true,
+                                                'rowCount' => 3,
+                                                'columns' => [
+                                                    [
+                                                        'caption' => 'Shutter',
+                                                        'name' => 'variableID',
+                                                        'width' => 'auto',
+                                                        'add' => $shutterAdd,
+                                                        'edit' => [
+                                                            'type' => 'Select',
+                                                            'options' => $shutterOptions
+                                                        ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ],
+                        [
+                            'type' => 'RowLayout',
+                            'items' => [
+                                [
+                                    'type' => 'CheckBox',
+                                    'name' => 'AutomaticReactionOpenExternalDoorsActivate',
+                                    'caption' => 'Open external doors'
+                                ],
+                                [
+                                    'type' => 'PopupButton',
+                                    'caption' => 'Define external doors',
+                                    'popup' => [
+                                        'caption' => 'External doors',
+                                        'items' => [
+                                            [
+                                                'type' => 'List',
+                                                'name' => 'AutomaticReactionOpenExternalDoorsDoors',
+                                                'add' => true,
+                                                'delete' => true,
+                                                'rowCount' => 3,
+                                                'columns' => [
+                                                    [
+                                                        'caption' => 'External Door',
+                                                        'name' => 'variableID',
+                                                        'width' => 'auto',
+                                                        'add' => $switchableDoorAdd,
+                                                        'edit' => [
+                                                            'type' => 'Select',
+                                                            'options' => $switchableDoorOptions
+                                                        ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
                 ]
             ])
         ]);
@@ -1004,6 +1116,12 @@ class IRiS extends WebHookModule {
 
     public function AddAlarm(string $alarmType) {
         $currentAlarmTypes = json_decode($this->ReadAttributeString('AlarmTypes'), true);
+
+        // First alert! Activate Automatic Reaction!
+        if (count($currentAlarmTypes) == 0) {
+            $this->ExecuteAutomaticReaction();
+        }
+
         if (!in_array($alarmType, $currentAlarmTypes)) {
             $currentAlarmTypes[] = $alarmType;
             $this->WriteAttributeString('AlarmTypes', json_encode($currentAlarmTypes));
@@ -1566,6 +1684,28 @@ class IRiS extends WebHookModule {
     private function HasAction($variableID) {
         $variable = IPS_GetVariable($variableID);
         return ($variable['VariableCustomAction'] > 10000) || (($variable['VariableCustomAction'] === 0) && ($variable['VariableAction'] > 10000));
+    }
+
+    private function ExecuteAutomaticReaction() {
+        if ($this->ReadPropertyBoolean('AutomaticReactionOpenShuttersActivate')) {
+            $exceptions = [];
+            foreach (json_decode($this->ReadPropertyString('AutomaticReactionOpenShuttersExceptions'), true) as $shutterExpection) {
+                $exceptions[] = $shutterExpection['variableID'];
+            }
+
+            foreach (json_decode($this->ReadPropertyString('Shutters'), true) as $shutter) {
+                if (!in_array($shutter['variableID'], $exceptions)) {
+                    self::dimDevice($shutter['variableID'], 0);
+                }
+            }
+        }
+
+        if ($this->ReadPropertyBoolean('AutomaticReactionOpenExternalDoorsActivate')) {
+            $exceptions = [];
+            foreach (json_decode($this->ReadPropertyString('AutomaticReactionOpenExternalDoorsDoors'), true) as $externalDoor) {
+                self::switchDevice($externalDoor['variableID'], true);
+            }
+        }
     }
 }
 
