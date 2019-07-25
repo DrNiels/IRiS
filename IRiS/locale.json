@@ -59,7 +59,16 @@
             "Switches/Buttons": "Schalter/Taster",
             "Motion Sensors": "Bewegungsmelder",
             "IFC File": "IFC Datei",
-            "Load IFC": "IFC laden"
+            "Load IFC": "IFC laden",
+            "Automatic Reaction on Alert": "Automatische Reaktion im Alarmfall",
+            "Open all shutters": "Alle Rollläden öffnen",
+            "Exceptions": "Ausnahmen",
+            "Shutters that should not open": "Rollläden, die nicht geöffnet werden sollen",
+            "Shutter": "Rollladen",
+            "Open external doors": "Außentüren öffnen",
+            "Define external doors": "Außentüren definieren",
+            "External doors": "Außentüren",
+            "External Door": "Außentür"
         }
     }
 }
