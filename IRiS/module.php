@@ -1129,7 +1129,7 @@ class IRiS extends WebHookModule {
         $nextPersonID = 100000;
         foreach (json_decode($this->ReadPropertyString('Rooms'), true) as $room) {
             if ($room['presence'] != 0 && GetValue($room['presence'])) {
-                $persons[] = [
+                $result[] = [
                     'id' => $nextPersonID,
                     'coreData' => false
                 ];
