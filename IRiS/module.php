@@ -1466,6 +1466,7 @@ class IRiS extends WebHookModule {
             case "Door":
             case "Light":
             case "EmergencyOff":
+            case "Window":
                 return self::switchDevice($variableID, $value);
 
             case "Shutter":
