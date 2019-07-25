@@ -1177,32 +1177,27 @@ class IRiS extends WebHookModule {
         }
 
         foreach (json_decode($this->ReadPropertyString('Doors'), true) as $door) {
-            $variable = IPS_GetVariable($door['variableID']);
-            $switchable = ($variable['VariableCustomAction'] > 10000) || ($variable['VariableAction'] > 10000);
+            $switchable = $this->HasAction($door['variableID']);
             $result[] = $this->ComputeDeviceInformation($door, 'Door', $switchable);
         }
 
         foreach (json_decode($this->ReadPropertyString('Windows'), true) as $window) {
-            $variable = IPS_GetVariable($window['variableID']);
-            $switchable = ($variable['VariableCustomAction'] > 10000) || ($variable['VariableAction'] > 10000);
+            $switchable = $this->HasAction($window['variableID']);
             $result[] = $this->ComputeDeviceInformation($window, 'Window', $switchable);
         }
 
         foreach (json_decode($this->ReadPropertyString('Lights'), true) as $light) {
-            $variable = IPS_GetVariable($light['variableID']);
-            $switchable = ($variable['VariableCustomAction'] > 10000) || ($variable['VariableAction'] > 10000);
+            $switchable = $this->HasAction($light['variableID']);
             $result[] = $this->ComputeDeviceInformation($light, 'Light', $switchable);
         }
 
         foreach (json_decode($this->ReadPropertyString('EmergencyOff'), true) as $emergencyOff) {
-            $variable = IPS_GetVariable($emergencyOff['variableID']);
-            $switchable = ($variable['VariableCustomAction'] > 10000) || ($variable['VariableAction'] > 10000);
+            $switchable = $this->HasAction($emergencyOff['variableID']);
             $result[] = $this->ComputeDeviceInformation($emergencyOff, 'EmergencyOff', $switchable);
         }
 
         foreach (json_decode($this->ReadPropertyString('Shutters'), true) as $shutter) {
-            $variable = IPS_GetVariable($shutter['variableID']);
-            $switchable = ($variable['VariableCustomAction'] > 10000) || ($variable['VariableAction'] > 10000);
+            $switchable = $this->HasAction($shutter['variableID']);
             $result[] = $this->ComputeDeviceInformation($shutter, 'Shutter', $switchable);
         }
 
@@ -1565,6 +1560,11 @@ class IRiS extends WebHookModule {
             $this->SendDebug('Fill IDs', 'Changed -> Apply Changes again', 0);
             IPS_ApplyChanges($this->InstanceID);
         }
+    }
+
+    private function HasAction($variableID) {
+        $variable = IPS_GetVariable($variableID);
+        return ($variable['VariableCustomAction'] > 10000) || (($variable['VariableCustomAction'] === 0) && ($variable['VariableAction'] > 10000));
     }
 }
 
