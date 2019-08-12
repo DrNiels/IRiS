@@ -38,6 +38,8 @@ class IRiS extends WebHookModule {
         $this->RegisterPropertyString("Shutters", "[]");
         $this->RegisterPropertyString("SwitchesButtons", "[]");
         $this->RegisterPropertyString("MotionSensors", "[]");
+        $this->RegisterPropertyString("Cameras", "[]");
+        $this->RegisterPropertyString("Images", "[]");
 
         $this->RegisterPropertyBoolean("AutomaticReactionOpenShuttersActivate", true);
         $this->RegisterPropertyString("AutomaticReactionOpenShuttersExceptions", "[]");
@@ -1110,6 +1112,147 @@ class IRiS extends WebHookModule {
                     'values' => []
                 ],
                 [
+                    'type' => 'List',
+                    'name' => 'Cameras',
+                    'rowCount' => 10,
+                    'caption' => 'Cameras',
+                    'add' => true,
+                    'delete' => true,
+                    'columns' => [
+                        [
+                            'caption' => 'ID',
+                            'name' => 'id',
+                            'width' => '75px',
+                            'add' => '',
+                            'save' => true
+                        ],
+                        [
+                            'caption' => 'Room',
+                            'name' => 'room',
+                            'width' => '200px',
+                            'add' => $roomAdd,
+                            'edit' => [
+                                'type' => 'Select',
+                                'options' => $roomOptions
+                            ]
+                        ],
+                        [
+                            'caption' => 'Camera Image',
+                            'name' => 'mediaID',
+                            'width' => 'auto',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectMedia'
+                            ]
+                        ],
+                        [
+                            'caption' => 'Device Image',
+                            'name' => 'imageID',
+                            'width' => '200px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectMedia'
+                            ]
+                        ],
+                        [
+                            'caption' => 'Direction',
+                            'name' => 'direction',
+                            'width' => '100px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner',
+                                'digits' => 2,
+                                'suffix' => '°'
+                            ]
+                        ],
+                        [
+                            'caption' => 'Map Position X',
+                            'name' => 'x',
+                            'width' => '130px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ],
+                        [
+                            'caption' => 'Map Position Y',
+                            'name' => 'y',
+                            'width' => '130px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ]
+                    ],
+                    'values' => []
+                ],
+                [
+                    'type' => 'List',
+                    'name' => 'Images',
+                    'rowCount' => 10,
+                    'caption' => 'Static Images',
+                    'add' => true,
+                    'delete' => true,
+                    'columns' => [
+                        [
+                            'caption' => 'ID',
+                            'name' => 'id',
+                            'width' => '75px',
+                            'add' => '',
+                            'save' => true
+                        ],
+                        [
+                            'caption' => 'Room',
+                            'name' => 'room',
+                            'width' => '200px',
+                            'add' => $roomAdd,
+                            'edit' => [
+                                'type' => 'Select',
+                                'options' => $roomOptions
+                            ]
+                        ],
+                        [
+                            'caption' => 'Image',
+                            'name' => 'mediaID',
+                            'width' => 'auto',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectMedia'
+                            ]
+                        ],
+                        [
+                            'caption' => 'Direction',
+                            'name' => 'direction',
+                            'width' => '100px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner',
+                                'digits' => 2,
+                                'suffix' => '°'
+                            ]
+                        ],
+                        [
+                            'caption' => 'Map Position X',
+                            'name' => 'x',
+                            'width' => '130px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ],
+                        [
+                            'caption' => 'Map Position Y',
+                            'name' => 'y',
+                            'width' => '130px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'NumberSpinner'
+                            ]
+                        ]
+                    ],
+                    'values' => []
+                ],
+                [
                     'type' => 'ExpansionPanel',
                     'caption' => 'Automatic Reaction on Alert',
                     'items' => [
@@ -1412,6 +1555,14 @@ class IRiS extends WebHookModule {
             $result[] = $this->ComputeDeviceInformation($motionSensor, 'MotionSensor', false);
         }
 
+        foreach (json_decode($this->ReadPropertyString('Cameras'), true) as $camera) {
+            $result[] = $this->ComputeDeviceInformation($camera, 'Camera', false);
+        }
+
+        foreach (json_decode($this->ReadPropertyString('Images'), true) as $image) {
+            $result[] = $this->ComputeDeviceInformation($image, 'Image', false);
+        }
+
         return $result;
     }
 
@@ -1614,6 +1765,40 @@ class IRiS extends WebHookModule {
             }
         }
 
+        foreach (json_decode($this->ReadPropertyString('Cameras'), true) as $camera) {
+            if ((sizeof($ids) == 0) || in_array(intval($camera['id']), $ids)) {
+                $device = [
+                    'id' => intval($camera['id']),
+                    'lastUpdate' => IPS_GetMedia($camera['mediaID'])['MediaUpdated'],
+                    'lastChange' => IPS_GetMedia($camera['mediaID'])['MediaUpdated'],
+                    'value' => new stdClass
+                ];
+
+                if (sizeof($ids) > 0) {
+                    $device['value']->image = IPS_GetMediaContent($camera['mediaID']);
+                }
+
+                $devices[] = $device;
+            }
+        }
+
+        foreach (json_decode($this->ReadPropertyString('Images'), true) as $image) {
+            if ((sizeof($ids) == 0) || in_array(intval($image['id']), $ids)) {
+                $device = [
+                    'id' => intval($image['id']),
+                    'lastUpdate' => IPS_GetMedia($image['mediaID'])['MediaUpdated'],
+                    'lastChange' => IPS_GetMedia($image['mediaID'])['MediaUpdated'],
+                    'value' => new stdClass
+                ];
+
+                if (sizeof($ids) > 0) {
+                    $device['value']->image = IPS_GetMediaContent($image['mediaID']);
+                }
+
+                $devices[] = $device;
+            }
+        }
+
         return [
             'persons' => $persons,
             'rooms' => $rooms,
@@ -1699,6 +1884,19 @@ class IRiS extends WebHookModule {
         return 0;
     }
 
+    private function GetMediaIDByIRISID($irisID) {
+        foreach (["Cameras", "Images"] as $property) {
+            foreach (json_decode($this->ReadPropertyString($property), true) as $value) {
+                if (intval($value['id']) == $irisID) {
+                    return $value['mediaID'];
+                }
+            }
+        }
+
+        $this->SendDebug("IRiS - Error", "Media for IRiS ID does not exist", 0);
+        return 0;
+    }
+
     private function GetDeviceImageIDByIRISID($irisID) {
         foreach (["SmokeDetectors", "Doors", "Windows", "Lights", "EmergencyOff", "Shutters", "SwitchesButtons", "MotionSensors", "Cameras"] as $property) {
             foreach (json_decode($this->ReadPropertyString($property), true) as $value) {
@@ -1713,7 +1911,7 @@ class IRiS extends WebHookModule {
     }
 
     private function GetDeviceTypeByIRISID($irisID) {
-        foreach (["SmokeDetectors", "Doors", "Windows", "Lights", "EmergencyOff", "Shutters", "SwitchesButtons", "MotionSensors"] as $property) {
+        foreach (["SmokeDetectors", "Doors", "Windows", "Lights", "EmergencyOff", "Shutters", "SwitchesButtons", "MotionSensors", "Cameras", "Images"] as $property) {
             foreach (json_decode($this->ReadPropertyString($property), true) as $value) {
                 if (intval($value['id']) == $irisID) {
                     switch ($property) {
@@ -1740,6 +1938,12 @@ class IRiS extends WebHookModule {
 
                         case "MotionSensors":
                             return "MotionSensor";
+
+                        case "Cameras":
+                            return "Camera";
+
+                        case "Images":
+                            return "Image";
                     }
                 }
             }
@@ -1751,7 +1955,7 @@ class IRiS extends WebHookModule {
 
     private function FillIDs() {
         $availableID = 0;
-        $propertyNames = ["Floors", "Rooms", "Persons", "SmokeDetectors", "TemperatureSensors", "Doors", "Windows", "Lights", "EmergencyOff", "Shutters", "SwitchesButtons", "MotionSensors"];
+        $propertyNames = ["Floors", "Rooms", "Persons", "SmokeDetectors", "TemperatureSensors", "Doors", "Windows", "Lights", "EmergencyOff", "Shutters", "SwitchesButtons", "MotionSensors", "Cameras", "Images"];
         foreach($propertyNames as $property) {
             foreach (json_decode($this->ReadPropertyString($property), true) as $value) {
                 if ($value['id'] != '') {
