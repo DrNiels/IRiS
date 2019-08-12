@@ -568,6 +568,15 @@ class IRiS extends WebHookModule {
                             ]
                         ],
                         [
+                            'caption' => 'Device Image',
+                            'name' => 'imageID',
+                            'width' => '200px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectMedia'
+                            ]
+                        ],
+                        [
                             'caption' => 'Map Position X',
                             'name' => 'x',
                             'width' => '130px',
@@ -620,6 +629,15 @@ class IRiS extends WebHookModule {
                             'add' => 0,
                             'edit' => [
                                 'type' => 'SelectVariable'
+                            ]
+                        ],
+                        [
+                            'caption' => 'Device Image',
+                            'name' => 'imageID',
+                            'width' => '200px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectMedia'
                             ]
                         ],
                         [
@@ -678,6 +696,15 @@ class IRiS extends WebHookModule {
                             ]
                         ],
                         [
+                            'caption' => 'Device Image',
+                            'name' => 'imageID',
+                            'width' => '200px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectMedia'
+                            ]
+                        ],
+                        [
                             'caption' => 'Map Position X',
                             'name' => 'x',
                             'width' => '130px',
@@ -730,6 +757,15 @@ class IRiS extends WebHookModule {
                             'add' => 0,
                             'edit' => [
                                 'type' => 'SelectVariable'
+                            ]
+                        ],
+                        [
+                            'caption' => 'Device Image',
+                            'name' => 'imageID',
+                            'width' => '200px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectMedia'
                             ]
                         ],
                         [
@@ -788,6 +824,15 @@ class IRiS extends WebHookModule {
                             ]
                         ],
                         [
+                            'caption' => 'Device Image',
+                            'name' => 'imageID',
+                            'width' => '200px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectMedia'
+                            ]
+                        ],
+                        [
                             'caption' => 'Map Position X',
                             'name' => 'x',
                             'width' => '130px',
@@ -840,6 +885,15 @@ class IRiS extends WebHookModule {
                             'add' => 0,
                             'edit' => [
                                 'type' => 'SelectVariable'
+                            ]
+                        ],
+                        [
+                            'caption' => 'Device Image',
+                            'name' => 'imageID',
+                            'width' => '200px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectMedia'
                             ]
                         ],
                         [
@@ -898,6 +952,15 @@ class IRiS extends WebHookModule {
                             ]
                         ],
                         [
+                            'caption' => 'Device Image',
+                            'name' => 'imageID',
+                            'width' => '200px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectMedia'
+                            ]
+                        ],
+                        [
                             'caption' => 'Map Position X',
                             'name' => 'x',
                             'width' => '130px',
@@ -953,6 +1016,15 @@ class IRiS extends WebHookModule {
                             ]
                         ],
                         [
+                            'caption' => 'Device Image',
+                            'name' => 'imageID',
+                            'width' => '200px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectMedia'
+                            ]
+                        ],
+                        [
                             'caption' => 'Map Position X',
                             'name' => 'x',
                             'width' => '130px',
@@ -1005,6 +1077,15 @@ class IRiS extends WebHookModule {
                             'add' => 0,
                             'edit' => [
                                 'type' => 'SelectVariable'
+                            ]
+                        ],
+                        [
+                            'caption' => 'Device Image',
+                            'name' => 'imageID',
+                            'width' => '200px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectMedia'
                             ]
                         ],
                         [
@@ -1192,6 +1273,10 @@ class IRiS extends WebHookModule {
                 $this->ReturnResult($request['id'], true);
                 break;
 
+            case 'getDeviceImage':
+                $this->ReturnResult($request['id'], IPS_GetMediaContent($this->GetDeviceImageIDByIRISID($request['params']['id'])));
+                break;
+
             default:
                 $this->SendDebug("IRiS - Error", "Undefined method", 0);
 
@@ -1345,7 +1430,7 @@ class IRiS extends WebHookModule {
     }
 
     private function ComputeDeviceInformation($value, $type, $switchable) {
-        return [
+        $result = [
             'id' => intval($value['id']),
             'room' => $value['room'],
             'position' => [
@@ -1353,8 +1438,15 @@ class IRiS extends WebHookModule {
                 'y' => $value['y']
             ],
             'type' => $type,
-            'switchable' => $switchable
+            'switchable' => $switchable,
+            'hasDeviceImage' => (isset($value['imageID']) && ($value['imageID'] != 0))
         ];
+
+        if (in_array($type, ['Camera', 'Image'])) {
+            $result['direction'] = $value['direction'];
+        }
+
+        return $result;
     }
 
     private function ComputeMaps() {
@@ -1604,6 +1696,19 @@ class IRiS extends WebHookModule {
         }
 
         $this->SendDebug("IRiS - Error", "Variable for IRiS ID does not exist", 0);
+        return 0;
+    }
+
+    private function GetDeviceImageIDByIRISID($irisID) {
+        foreach (["SmokeDetectors", "Doors", "Windows", "Lights", "EmergencyOff", "Shutters", "SwitchesButtons", "MotionSensors", "Cameras"] as $property) {
+            foreach (json_decode($this->ReadPropertyString($property), true) as $value) {
+                if (intval($value['id']) == $irisID) {
+                    return $value['imageID'];
+                }
+            }
+        }
+
+        $this->SendDebug("IRiS - Error", "Device Image for IRiS ID does not exist", 0);
         return 0;
     }
 
