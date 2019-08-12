@@ -68,7 +68,13 @@
             "Open external doors": "Außentüren öffnen",
             "Define external doors": "Außentüren definieren",
             "External doors": "Außentüren",
-            "External Door": "Außentür"
+            "External Door": "Außentür",
+            "Device Image": "Gerätbild",
+            "Cameras": "Kameras",
+            "Static Images": "Statische Bilder",
+            "Camera Image": "Kamerabild",
+            "Image": "Bild",
+            "Direction": "Ausrichtung"
         }
     }
 }
