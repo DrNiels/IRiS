@@ -367,7 +367,7 @@ class IRiS extends WebHookModule {
                         [
                             'caption' => 'Map: North Degree',
                             'name' => 'north',
-                            'width' => '150px',
+                            'width' => '200px',
                             'add' => 0,
                             'edit' => [
                                 'type' => 'NumberSpinner',
