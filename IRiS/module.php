@@ -1474,6 +1474,9 @@ class IRiS extends WebHookModule {
             }
             else {
                 $person['diseases'] = explode(',', $person['diseases']);
+                array_walk($person['diseases'], function(&$item, $key) {
+                    $item = trim($item);
+                });
             }
 
             $person['coreData'] = true;
