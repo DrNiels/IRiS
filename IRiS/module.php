@@ -515,6 +515,15 @@ class IRiS extends WebHookModule {
                             ]
                         ],
                         [
+                            'caption' => 'Image',
+                            'name' => 'imageID',
+                            'width' => '200px',
+                            'add' => 0,
+                            'edit' => [
+                                'type' => 'SelectMedia'
+                            ]
+                        ],
+                        [
                             'caption' => 'Birthday',
                             'name' => 'birthday',
                             'width' => '200px',
@@ -1416,8 +1425,8 @@ class IRiS extends WebHookModule {
                 $this->ReturnResult($request['id'], true);
                 break;
 
-            case 'getDeviceImage':
-                $this->ReturnResult($request['id'], IPS_GetMediaContent($this->GetDeviceImageIDByIRISID($request['params']['id'])));
+            case 'getObjectImage':
+                $this->ReturnResult($request['id'], IPS_GetMediaContent($this->GetObjectImageIDByIRISID($request['params']['id'])));
                 break;
 
             default:
@@ -1468,6 +1477,8 @@ class IRiS extends WebHookModule {
             }
 
             $person['coreData'] = true;
+            $person['hasObjectImage'] = ($person['imageID'] > 0);
+            unset($person['imageID']);
 
             $result[] = $person;
         }
@@ -1477,7 +1488,8 @@ class IRiS extends WebHookModule {
             if ($room['presence'] != 0 && GetValue($room['presence'])) {
                 $result[] = [
                     'id' => $nextPersonID,
-                    'coreData' => false
+                    'coreData' => false,
+                    'hasObjectImage' => false
                 ];
                 $nextPersonID++;
             }
@@ -1590,7 +1602,7 @@ class IRiS extends WebHookModule {
             ],
             'type' => $type,
             'switchable' => $switchable,
-            'hasDeviceImage' => (isset($value['imageID']) && ($value['imageID'] != 0))
+            'hasObjectImage' => (isset($value['imageID']) && ($value['imageID'] != 0))
         ];
 
         if (in_array($type, ['Camera', 'Image'])) {
@@ -1897,8 +1909,8 @@ class IRiS extends WebHookModule {
         return 0;
     }
 
-    private function GetDeviceImageIDByIRISID($irisID) {
-        foreach (["SmokeDetectors", "Doors", "Windows", "Lights", "EmergencyOff", "Shutters", "SwitchesButtons", "MotionSensors", "Cameras"] as $property) {
+    private function GetObjectImageIDByIRISID($irisID) {
+        foreach (["Persons", "SmokeDetectors", "Doors", "Windows", "Lights", "EmergencyOff", "Shutters", "SwitchesButtons", "MotionSensors", "Cameras"] as $property) {
             foreach (json_decode($this->ReadPropertyString($property), true) as $value) {
                 if (intval($value['id']) == $irisID) {
                     return $value['imageID'];
