@@ -1782,15 +1782,16 @@ class IRiS extends WebHookModule {
 
         foreach (json_decode($this->ReadPropertyString('Cameras'), true) as $camera) {
             if ((sizeof($ids) == 0) || in_array(intval($camera['id']), $ids)) {
+                $updated = IPS_MediaExists($camera['mediaID']) ? IPS_GetMedia($camera['mediaID'])['MediaUpdated'] : 0;
                 $device = [
                     'id' => intval($camera['id']),
-                    'lastUpdate' => IPS_GetMedia($camera['mediaID'])['MediaUpdated'],
-                    'lastChange' => IPS_GetMedia($camera['mediaID'])['MediaUpdated'],
+                    'lastUpdate' => $updated,
+                    'lastChange' => $updated,
                     'value' => new stdClass
                 ];
 
                 if (sizeof($ids) > 0) {
-                    $device['value']->image = IPS_GetMediaContent($camera['mediaID']);
+                    $device['value']->image = IPS_MediaExists($camera['mediaID']) ? IPS_GetMediaContent($camera['mediaID']) : '';
                 }
 
                 $devices[] = $device;
@@ -1799,15 +1800,16 @@ class IRiS extends WebHookModule {
 
         foreach (json_decode($this->ReadPropertyString('Images'), true) as $image) {
             if ((sizeof($ids) == 0) || in_array(intval($image['id']), $ids)) {
+                $updated = IPS_MediaExists($image['mediaID']) ? IPS_GetMedia($image['mediaID'])['MediaUpdated'] : 0;
                 $device = [
                     'id' => intval($image['id']),
-                    'lastUpdate' => IPS_GetMedia($image['mediaID'])['MediaUpdated'],
-                    'lastChange' => IPS_GetMedia($image['mediaID'])['MediaUpdated'],
+                    'lastUpdate' => $updated,
+                    'lastChange' => $updated,
                     'value' => new stdClass
                 ];
 
                 if (sizeof($ids) > 0) {
-                    $device['value']->image = IPS_GetMediaContent($image['mediaID']);
+                    $device['value']->image = IPS_MediaExists($image['mediaID']) ? IPS_GetMediaContent($image['mediaID']) : '';
                 }
 
                 $devices[] = $device;
