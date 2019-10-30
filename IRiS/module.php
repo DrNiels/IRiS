@@ -377,6 +377,7 @@ class IRiS extends WebHookModule {
                             'name' => 'pixelsPerMeter',
                             'width' => '180px',
                             'add' => 1,
+                            'visible' => false,
                             'edit' => [
                                 'type' => 'NumberSpinner',
                                 'digits' => 2
@@ -387,10 +388,21 @@ class IRiS extends WebHookModule {
                             'name' => 'north',
                             'width' => '200px',
                             'add' => 0,
+                            'visible' => false,
                             'edit' => [
                                 'type' => 'NumberSpinner',
                                 'digits' => 2,
                                 'suffix' => '°'
+                            ]
+                        ],
+                        [
+                            'caption' => 'Map: World Coordinate',
+                            'name' => 'coordinates',
+                            'width' => '200px',
+                            'visible' => false,
+                            'add' => '{ "latitude": 0, "longitude": 0 }',
+                            'edit' => [
+                                'type' => 'SelectLocation'
                             ]
                         ]
 
@@ -1694,7 +1706,8 @@ class IRiS extends WebHookModule {
                 'floor' => intval($floor['id']),
                 'map' => $floor['map'],
                 'pixelsPerMeter' => $floor['pixelsPerMeter'],
-                'north' => $floor['north']
+                'north' => $floor['north'],
+                'coordinates' => json_decode($floor['coordinates'])
             ];
         }
 
