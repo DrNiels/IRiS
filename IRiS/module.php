@@ -1622,27 +1622,27 @@ class IRiS extends WebHookModule {
         }
 
         foreach (json_decode($this->ReadPropertyString('Doors'), true) as $door) {
-            $switchable = $this->HasAction($door['variableID']);
+            $switchable = (self::getSwitchCompatibility($door['variableID']) == 'OK');
             $result[] = $this->ComputeDeviceInformation($door, 'Door', $switchable);
         }
 
         foreach (json_decode($this->ReadPropertyString('Windows'), true) as $window) {
-            $switchable = $this->HasAction($window['variableID']);
+            $switchable = (self::getSwitchCompatibility($window['variableID']) == 'OK');
             $result[] = $this->ComputeDeviceInformation($window, 'Window', $switchable);
         }
 
         foreach (json_decode($this->ReadPropertyString('Lights'), true) as $light) {
-            $switchable = $this->HasAction($light['variableID']);
+            $switchable = (self::getSwitchCompatibility($light['variableID']) == 'OK');
             $result[] = $this->ComputeDeviceInformation($light, 'Light', $switchable);
         }
 
         foreach (json_decode($this->ReadPropertyString('EmergencyOff'), true) as $emergencyOff) {
-            $switchable = $this->HasAction($emergencyOff['variableID']);
+            $switchable = (self::getSwitchCompatibility($emergencyOff['variableID']) == 'OK');
             $result[] = $this->ComputeDeviceInformation($emergencyOff, 'EmergencyOff', $switchable);
         }
 
         foreach (json_decode($this->ReadPropertyString('Shutters'), true) as $shutter) {
-            $switchable = $this->HasAction($shutter['variableID']);
+            $switchable = (self::getDimCompatibility($light['variableID']) == 'OK');
             $result[] = $this->ComputeDeviceInformation($shutter, 'Shutter', $switchable);
         }
 
@@ -2092,11 +2092,6 @@ class IRiS extends WebHookModule {
         }
     }
 
-    private function HasAction($variableID) {
-        $variable = IPS_GetVariable($variableID);
-        return ($variable['VariableCustomAction'] > 10000) || (($variable['VariableCustomAction'] === 0) && ($variable['VariableAction'] > 10000));
-    }
-
     private function ExecuteAutomaticReaction() {
         if ($this->ReadPropertyBoolean('AutomaticReactionOpenShuttersActivate')) {
             $exceptions = [];
@@ -2105,7 +2100,7 @@ class IRiS extends WebHookModule {
             }
 
             foreach (json_decode($this->ReadPropertyString('Shutters'), true) as $shutter) {
-                if (!in_array($shutter['variableID'], $exceptions)) {
+                if (!in_array($shutter['variableID'], $exceptions) && (self::getDimCompatibility($shutter['variableID']) == 'OK')) {
                     self::dimDevice($shutter['variableID'], 0);
                 }
             }
