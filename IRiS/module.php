@@ -43,8 +43,11 @@ class IRiS extends WebHookModule {
 
         $this->RegisterPropertyBoolean("AutomaticReactionOpenShuttersActivate", true);
         $this->RegisterPropertyString("AutomaticReactionOpenShuttersExceptions", "[]");
-        $this->RegisterPropertyBoolean("AutomaticReactionOpenExternalDoorsActivate", true);
-        $this->RegisterPropertyString("AutomaticReactionOpenExternalDoorsDoors", "[]");
+        $this->RegisterPropertyBoolean("AutomaticReactionOpenDoorsActivate", true);
+        $this->RegisterPropertyString("AutomaticReactionOpenDoorsExceptions", "[]");
+        $this->RegisterPropertyBoolean("AutomaticReactionLightsOnActivate", true);
+        $this->RegisterPropertyString("AutomaticReactionLightsOnExceptions", "[]");
+        $this->RegisterPropertyBoolean("AutomaticReactionSealFireActivate", false);
 
         $this->RegisterAttributeString("AlarmTypes", "[]");
     }
@@ -183,7 +186,7 @@ class IRiS extends WebHookModule {
         $switchableDoorOptions = [];
         $doors = json_decode($this->ReadPropertyString('Doors'), true);
         foreach($doors as $door) {
-            if ($this->HasAction($door['variableID'])) {
+            if (self::getSwitchCompatibility($door['variableID']) == 'OK') {
                 $switchableDoorOptions[] = [
                     'caption' => IPS_GetLocation($door['variableID']),
                     'value' => $door['variableID']
@@ -193,6 +196,19 @@ class IRiS extends WebHookModule {
         $switchableDoorAdd = 0;
         if (sizeof($switchableDoorOptions) > 0) {
             $switchableDoorAdd = $switchableDoorOptions[0]['value'];
+        }
+
+        $lightOptions = [];
+        $lights = json_decode($this->ReadPropertyString('Lights'), true);
+        foreach($lights as $light) {
+            $lightOptions[] = [
+                'caption' => IPS_GetLocation($light['variableID']),
+                'value' => $light['variableID']
+            ];
+        }
+        $lightAdd = 0;
+        if (sizeof($lightOptions) > 0) {
+            $lightAdd = $lightOptions[0]['value'];
         }
 
         return json_encode([
@@ -695,6 +711,19 @@ class IRiS extends WebHookModule {
                             'edit' => [
                                 'type' => 'Select',
                                 'options' => $roomOptions
+                            ]
+                        ],
+                        [
+                            'caption' => 'Connecting Room',
+                            'name' => 'room2',
+                            'width' => '200px',
+                            'add' => -1,
+                            'edit' => [
+                                'type' => 'Select',
+                                'options' => array_merge([[
+                                    'caption' => 'No room',
+                                    'value' => -1
+                                ]], $roomOptions)
                             ]
                         ],
                         [
@@ -1271,7 +1300,7 @@ class IRiS extends WebHookModule {
                                 [
                                     'type' => 'CheckBox',
                                     'name' => 'AutomaticReactionOpenShuttersActivate',
-                                    'caption' => 'Open all shutters'
+                                    'caption' => 'Open All Shutters'
                                 ],
                                 [
                                     'type' => 'PopupButton',
@@ -1308,24 +1337,24 @@ class IRiS extends WebHookModule {
                             'items' => [
                                 [
                                     'type' => 'CheckBox',
-                                    'name' => 'AutomaticReactionOpenExternalDoorsActivate',
-                                    'caption' => 'Open external doors'
+                                    'name' => 'AutomaticReactionOpenDoorsActivate',
+                                    'caption' => 'Open Doors'
                                 ],
                                 [
                                     'type' => 'PopupButton',
-                                    'caption' => 'Define external doors',
+                                    'caption' => 'Exceptions',
                                     'popup' => [
-                                        'caption' => 'External doors',
+                                        'caption' => 'Doors that should not open',
                                         'items' => [
                                             [
                                                 'type' => 'List',
-                                                'name' => 'AutomaticReactionOpenExternalDoorsDoors',
+                                                'name' => 'AutomaticReactionOpenDoorsExceptions',
                                                 'add' => true,
                                                 'delete' => true,
                                                 'rowCount' => 3,
                                                 'columns' => [
                                                     [
-                                                        'caption' => 'External Door',
+                                                        'caption' => 'Door',
                                                         'name' => 'variableID',
                                                         'width' => 'auto',
                                                         'add' => $switchableDoorAdd,
@@ -1340,6 +1369,49 @@ class IRiS extends WebHookModule {
                                     ]
                                 ]
                             ]
+                        ],
+                        [
+                            'type' => 'RowLayout',
+                            'items' => [
+                                [
+                                    'type' => 'CheckBox',
+                                    'name' => 'AutomaticReactionLightsOnActivate',
+                                    'caption' => 'Switch Lights On'
+                                ],
+                                [
+                                    'type' => 'PopupButton',
+                                    'caption' => 'Exceptions',
+                                    'popup' => [
+                                        'caption' => 'Lights that should not be switched on',
+                                        'items' => [
+                                            [
+                                                'type' => 'List',
+                                                'name' => 'AutomaticReactionLightsOnExceptions',
+                                                'add' => true,
+                                                'delete' => true,
+                                                'rowCount' => 3,
+                                                'columns' => [
+                                                    [
+                                                        'caption' => 'Light',
+                                                        'name' => 'variableID',
+                                                        'width' => 'auto',
+                                                        'add' => $lightAdd,
+                                                        'edit' => [
+                                                            'type' => 'Select',
+                                                            'options' => $lightOptions
+                                                        ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ],
+                        [
+                            'type' => 'CheckBox',
+                            'name' => 'AutomaticReactionSealFireActivate',
+                            'caption' => 'Seal fire in rooms without persons (Caution: This option requires highly reliable presence detection or persons could be trapped in the burning room)'
                         ]
                     ]
                 ]
@@ -2026,10 +2098,52 @@ class IRiS extends WebHookModule {
             }
         }
 
-        if ($this->ReadPropertyBoolean('AutomaticReactionOpenExternalDoorsActivate')) {
+        if ($this->ReadPropertyBoolean('AutomaticReactionOpenDoorsActivate')) {
             $exceptions = [];
-            foreach (json_decode($this->ReadPropertyString('AutomaticReactionOpenExternalDoorsDoors'), true) as $externalDoor) {
-                self::switchDevice($externalDoor['variableID'], true);
+            foreach (json_decode($this->ReadPropertyString('AutomaticReactionOpenDoorsExceptions'), true) as $doorException) {
+                $exceptions[] = $doorException['variableID'];
+            }
+
+            foreach (json_decode($this->ReadPropertyString('Doors'), true) as $door) {
+                if (!in_array($door['variableID'], $exceptions) && (self::getSwitchCompatibility($door['variableID']) == 'OK')) {
+                    self::switchDevice($door['variableID'], true);
+                }
+            }
+        }
+
+        if ($this->ReadPropertyBoolean('AutomaticReactionLightsOnActivate')) {
+            $exceptions = [];
+            foreach (json_decode($this->ReadPropertyString('AutomaticReactionLightsOnExceptions'), true) as $lightException) {
+                $exceptions[] = $lightException['variableID'];
+            }
+
+            foreach (json_decode($this->ReadPropertyString('Lights'), true) as $light) {
+                if (!in_array($light['variableID'], $exceptions) && (self::getSwitchCompatibility($light['variableID']) == 'OK')) {
+                    self::switchDevice($light['variableID'], true);
+                }
+            }
+        }
+
+        if ($this->ReadPropertyBoolean('AutomaticReactionSealFireActivate')) {
+            $this->SendDebug('Automatic Reaction - Seal Fire', 'Start', 0);
+            foreach (json_decode($this->ReadPropertyString('Rooms'), true) as $room) {
+                // Only seal if the room has presence detection and no person is currently detected and there is some alert status, i.e., Smoked or Burning
+                // TODO: We could increase performance by first determining all rooms that should be sealed and only looping through windows and doors once afterwards
+                if ($room['presence'] != 0 && !GetValue($room['presence']) && (sizeof($this->ComputeStatusOfRoom($room['id'])) > 0)) {
+                    $this->SendDebug('Automatic Reaction - Seal Fire', 'Room should be sealed: ' . $room['id'], 0);
+                    foreach (json_decode($this->ReadPropertyString('Doors'), true) as $door) {
+                        if (in_array($room['id'], [ $door['room'], $door['room2']]) && (self::getSwitchCompatibility($door['variableID']) == 'OK')) {
+                            $this->SendDebug('Automatic Reaction - Seal Fire', 'Close Door: ' . $door['id'] . '/' . $door['variableID'], 0);
+                            self::switchDevice($door['variableID'], false);
+                        }
+                    }
+
+                    foreach (json_decode($this->ReadPropertyString('Windows'), true) as $window) {
+                        if (($window['room'] == $room['id']) && (self::getSwitchCompatibility($window['variableID']) == 'OK')) {
+                            self::switchDevice($window['variableID'], false);
+                        }
+                    }
+                }
             }
         }
     }
