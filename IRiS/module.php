@@ -50,6 +50,8 @@ class IRiS extends WebHookModule {
         $this->RegisterPropertyBoolean("AutomaticReactionSealFireActivate", false);
 
         $this->RegisterAttributeString("AlarmTypes", "[]");
+
+        $this->RegisterTimer('MarkRoomsTimer', 1000, 'IRIS_UpdateMarkedRooms($_IPS["TARGET"]);');
     }
 
     public function Destroy(){
@@ -876,6 +878,15 @@ class IRiS extends WebHookModule {
                             ]
                         ],
                         [
+                            'caption' => 'Blink when marked',
+                            'name' => 'blink',
+                            'width' => '200px',
+                            'add' => false,
+                            'edit' => [
+                                'type' => 'CheckBox'
+                            ]
+                        ],
+                        [
                             'caption' => 'Device Image',
                             'name' => 'imageID',
                             'width' => '200px',
@@ -1449,6 +1460,36 @@ class IRiS extends WebHookModule {
         $this->WriteAttributeString('AlarmTypes', '[]');
     }
 
+    public function UpdateMarkedRooms() {
+        $this->SetTimerInterval('MarkRoomsTimer', 0);
+
+        $markedRooms = [];
+        foreach (json_decode($this->ReadPropertyString('Rooms'), true) as $room) {
+            $bufferContent = $this->GetBuffer('RoomMarked.' . $room['id']);
+            $currentMarked = $bufferContent ? json_decode($bufferContent) : false;
+            if ($currentMarked) {
+                $markedRooms[] = intval($room['id']);
+            }
+        }
+        
+
+        $currentLight = false;
+        $currentLightDetermined = false;
+        
+        foreach (json_decode($this->ReadPropertyString('Lights'), true) as $light) {
+            if (in_array($light['room'], $markedRooms) && $light['blink']) {
+                if (!$currentLightDetermined) {
+                    $currentLight = GetValue($light['variableID']);
+                    $currentLightDetermined = true;
+                }
+
+                self::switchDevice($light['variableID'], !$currentLight);
+            }
+        }
+
+        $this->SetTimerInterval('MarkRoomsTimer', $currentLight ? 1000 : 2000);
+    }
+
     /**
      * This function will be called by the hook control. Visibility should be protected!
      */
@@ -1513,10 +1554,46 @@ class IRiS extends WebHookModule {
                 $this->ReturnResult($request['id'], IPS_GetMediaContent($this->GetObjectImageIDByIRISID($request['params']['id'])));
                 break;
 
+            case 'setRoomMarked':
+                $this->SetRoomMarked($request['params']['id'], $request['params']['marked']);
+                $this->ReturnResult($request['id'], true);
+                break;
+
             default:
                 $this->SendDebug("IRiS - Error", "Undefined method", 0);
 
         }
+    }
+
+    private function SetRoomMarked($roomID, $marked) {
+        // Buffer could be empty
+        $bufferContent = $this->GetBuffer("RoomMarked.$roomID");
+        $currentMarked = $bufferContent ? json_decode($bufferContent) : false;
+        
+        // Only work here if something changes
+        if ($currentMarked == $marked) {
+            return;
+        }
+
+        $this->SetBuffer("RoomMarked.$roomID", json_encode($marked));
+
+        if ($marked) {
+            foreach (json_decode($this->ReadPropertyString('Lights'), true) as $light) {
+                if (($light['room'] == $roomID) && $light['blink']) {
+                    $this->SetBuffer('LightBeforeMarked.' . $light['id'], json_encode(GetValue($light['variableID'])));
+                    $this->SendDebug('Save Light Before Marked', $light['id'] . ': ' . $this->GetBuffer('LightBeforeMarked.' . $light['id']), 0);
+                }
+            }
+        }
+        else {
+            foreach (json_decode($this->ReadPropertyString('Lights'), true) as $light) {
+                if (($light['room'] == $roomID) && $light['blink']) {
+                    $this->SendDebug('Restore previous value', $light['id'] . '/' . $light['variableID'] . ': ' . $this->GetBuffer('LightBeforeMarked.' . $light['id']), 0);
+                    self::switchDevice($light['variableID'], json_decode($this->GetBuffer('LightBeforeMarked.' . $light['id'])));
+                }
+            }
+        }
+
     }
 
     private function ReturnResult($id, $result) {
@@ -1729,10 +1806,13 @@ class IRiS extends WebHookModule {
         $nextPersonID = 100000;
         foreach (json_decode($this->ReadPropertyString('Rooms'), true) as $room) {
             if ((sizeof($ids) == 0) || in_array(intval($room['id']), $ids)) {
+                $bufferContent = $this->GetBuffer('RoomMarked.' . $room['id']);
+                $currentMarked = $bufferContent ? json_decode($bufferContent) : false;
                 $rooms[] = [
                     'id' => intval($room['id']),
                     'status' => $this->ComputeStatusOfRoom($room['id']),
-                    'lastPresence' => $this->GetLastPresence($room['presence'])
+                    'lastPresence' => $this->GetLastPresence($room['presence']),
+                    'marked' => $currentMarked
                 ];
             }
 
