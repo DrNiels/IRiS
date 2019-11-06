@@ -1667,9 +1667,12 @@ class IRiS extends WebHookModule {
         $result = [];
 
         foreach (json_decode($this->ReadPropertyString('Floors'), true) as $floor) {
-            unset($floor['map']);
-            $floor['id'] = intval($floor['id']);
-            $result[] = $floor;
+            $result[] = [
+                'id'       => intval($floor['id']),
+                'name'     => $floor['name'],
+                'type'     => $floor['type'],
+                'level'    => $floor['level']
+            ];
         }
 
         return $result;
