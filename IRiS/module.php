@@ -1684,6 +1684,14 @@ class IRiS extends WebHookModule {
         foreach (json_decode($this->ReadPropertyString('Rooms'), true) as $room) {
             $room['id'] = intval($room['id']);
             unset($room['presence']);
+            $markable = false;
+            foreach (json_decode($this->ReadPropertyString('Lights'), true) as $light) {
+                if (($light['room'] == $room['id']) && $light['blink']) {
+                    $markable = true;
+                    break;
+                }
+            }
+            $room['markable'] = $markable;
             $result[] = $room;
         }
 
