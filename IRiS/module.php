@@ -48,6 +48,7 @@ class IRiS extends WebHookModule {
         $this->RegisterPropertyBoolean("AutomaticReactionLightsOnActivate", true);
         $this->RegisterPropertyString("AutomaticReactionLightsOnExceptions", "[]");
         $this->RegisterPropertyBoolean("AutomaticReactionSealFireActivate", false);
+        $this->RegisterPropertyBoolean("AutomaticReactionOpenWindowsInRoomsWithPersons", false);
 
         $this->RegisterAttributeString("AlarmTypes", "[]");
 
@@ -1435,6 +1436,11 @@ class IRiS extends WebHookModule {
                             'type' => 'CheckBox',
                             'name' => 'AutomaticReactionSealFireActivate',
                             'caption' => 'Seal fire in rooms without persons (Caution: This option requires highly reliable presence detection or persons could be trapped in the burning room)'
+                        ],
+                        [
+                            'type' => 'CheckBox',
+                            'name' => 'AutomaticReactionOpenWindowsInRoomsWithPersons',
+                            'caption' => 'Open windows in rooms with persons (This option only works with status based presence detection)'
                         ]
                     ]
                 ]
@@ -2231,19 +2237,32 @@ class IRiS extends WebHookModule {
                 if ($room['presence'] != 0 && !GetValue($room['presence']) && (sizeof($this->ComputeStatusOfRoom($room['id'])) > 0)) {
                     $this->SendDebug('Automatic Reaction - Seal Fire', 'Room should be sealed: ' . $room['id'], 0);
                     foreach (json_decode($this->ReadPropertyString('Doors'), true) as $door) {
-                        if (in_array($room['id'], [ $door['room'], $door['room2']]) && (self::getSwitchCompatibility($door['variableID']) == 'OK')) {
+                        if (in_array(intval($room['id']), [ $door['room'], $door['room2']]) && (self::getSwitchCompatibility($door['variableID']) == 'OK')) {
                             $this->SendDebug('Automatic Reaction - Seal Fire', 'Close Door: ' . $door['id'] . '/' . $door['variableID'], 0);
                             self::switchDevice($door['variableID'], false);
                         }
                     }
 
                     foreach (json_decode($this->ReadPropertyString('Windows'), true) as $window) {
-                        if (($window['room'] == $room['id']) && (self::getSwitchCompatibility($window['variableID']) == 'OK')) {
+                        if (($window['room'] == intval($room['id'])) && (self::getSwitchCompatibility($window['variableID']) == 'OK')) {
                             self::switchDevice($window['variableID'], false);
                         }
                     }
                 }
             }
+        }
+
+        if ($this->ReadPropertyBoolean('AutomaticReactionOpenWindowsInRoomsWithPersons')) {
+            foreach (json_decode($this->ReadPropertyString('Rooms'), true) as $room) {
+                if ($room['presence'] != 0 && GetValue($room['presence'])) {
+                    foreach (json_decode($this->ReadPropertyString('Windows'), true) as $window) {
+                        if ((intval($room['id']) == $window['room']) && (self::getSwitchCompatibility($window['variableID']) == 'OK')) {
+                            self::switchDevice($window['variableID'], true);
+                        }
+                    }
+                }
+            }
+
         }
     }
 }
