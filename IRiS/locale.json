@@ -54,6 +54,7 @@
             "Doors": "Türen",
             "Windows": "Fenster",
             "Lights": "Lampen",
+            "Blink when marked": "Blinke bei Markierung",
             "Emergency Off": "Notaus",
             "Shutters": "Rolladen",
             "Switches/Buttons": "Schalter/Taster",
@@ -61,20 +62,23 @@
             "IFC File": "IFC Datei",
             "Load IFC": "IFC laden",
             "Automatic Reaction on Alert": "Automatische Reaktion im Alarmfall",
-            "Open all shutters": "Alle Rollläden öffnen",
+            "Open All Shutters": "Alle Rollläden öffnen",
             "Exceptions": "Ausnahmen",
             "Shutters that should not open": "Rollläden, die nicht geöffnet werden sollen",
             "Shutter": "Rollladen",
-            "Open external doors": "Außentüren öffnen",
-            "Define external doors": "Außentüren definieren",
-            "External doors": "Außentüren",
-            "External Door": "Außentür",
+            "Open Doors": "Türen öffnen",
+            "Doors that should not open": "Türen, die nicht geöffnet werden sollen",
+            "Switch Lights On": "Schalte Lampen an",
+            "Lights that should not be switched on": "Lampen, das nicht angeschaltet werden sollen",
+            "Seal fire in rooms without persons (Caution: This option requires highly reliable presence detection or persons could be trapped in the burning room)": "Sperre Feuer in Räumen ohne Personen ein (Achtung: Diese Option erfordert eine sehr zuverlässige Presenzdetektion. Ist diese nicht vorhanden, könnten Personen in brennenden Räumen der Fluchtweg blockiert werden)",
+            "Open windows in rooms with persons (This option only works with status based presence detection)": "Öffne Fenster in Räumen mit Personen (Diese Option funktioniert nur mit statusbasierter Präsenzdetektion)",
             "Device Image": "Gerätbild",
             "Cameras": "Kameras",
             "Static Images": "Statische Bilder",
             "Camera Image": "Kamerabild",
             "Image": "Bild",
-            "Direction": "Ausrichtung"
+            "Direction": "Ausrichtung",
+            "No room": "Kein Raum"
         }
     }
 }
