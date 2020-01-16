@@ -1790,6 +1790,14 @@ class IRiS extends WebHookModule {
             $result['direction'] = $value['direction'];
         }
 
+        if ($type == 'Light') {
+            $result['showMarking'] = $value['blink'];
+        }
+
+        if ($type == 'Door') {
+            $result['connectingRoom'] = $value['room2'];
+        }
+
         return $result;
     }
 
