@@ -447,7 +447,8 @@ class IRiS extends WebHookModule {
                             'width' => 'auto',
                             'add' => '',
                             'edit' => [
-                                'type' => 'ValidationTextBox'
+                                'type' => 'ValidationTextBox',
+                                'multiline' => true
                             ]
                         ],
                         [
