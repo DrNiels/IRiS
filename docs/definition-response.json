@@ -1,0 +1,723 @@
+{
+    "type": "object",
+    "required": [
+        "jsonrpc",
+        "result",
+        "id"
+    ],
+    "properties": {
+        "jsonrpc": {
+            "const": "2.0"
+        },
+        "id": {
+            "type": [
+                "string",
+                "integer"
+            ]
+        },
+        "result": {
+            "anyOf": [
+                {
+                    "$comment": "Response to isAlarm",
+                    "type": "object",
+                    "required": [
+                        "alarm"
+                    ],
+                    "properties": {
+                        "alarm": {
+                            "type": "boolean"
+                        },
+                        "types": {
+                            "type": "array",
+                            "items": {
+                                "enum": [
+                                    "Fire"
+                                ]
+                            }
+                        },
+                        "lastPresence": {
+                            "comment$": "Unix Timestamp, 0 if nothing available",
+                            "type": "integer"
+                        }
+                    },
+                    "if": {
+                        "properties": {
+                            "alarm": {
+                                "const": true
+                            }
+                        }
+                    },
+                    "then": {
+                        "required": [
+                            "types",
+                            "lastPresence"
+                        ]
+                    },
+                    "else": {
+                        "not": {
+                            "required": [
+                                "types",
+                                "lastPresence"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "$comment": "Response to getGeneralInformation",
+                    "type": "object",
+                    "required": [
+                        "address",
+                        "buildingMaterial",
+                        "heatingType"
+                    ],
+                    "properties": {
+                        "address": {
+                            "type": "string"
+                        },
+                        "buildingMaterial": {
+                            "enum": [
+                                "Stone",
+                                "Timber",
+                                "LoamStraw",
+                                "Steel"
+                            ]
+                        },
+                        "heatingType": {
+                            "type": "array",
+                            "items": {
+                                "enum": [
+                                    "Electric",
+                                    "Oil",
+                                    "Gas",
+                                    "Thermal",
+                                    "Pellets",
+                                    "Solar"
+                                ]
+                            }
+                        }
+                    }
+                },
+                {
+                    "$comment": "Response to getObjectList",
+                    "type": "object",
+                    "properties": {
+                        "persons": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "id",
+                                    "hasObjectImage",
+                                    "coreData"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "integer"
+                                    },
+                                    "hasObjectImage": {
+                                        "type": "boolean"
+                                    },
+                                    "coreData": {
+                                        "comment$": "Iff true, the data was included in the building editor by the user. Otherwise, the data was generated as a generic person",
+                                        "type": "boolean"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "birthday": {
+                                        "comment$": "Unix Timestamp",
+                                        "type": "integer"
+                                    },
+                                    "remark": {
+                                        "type": "string"
+                                    },
+                                    "diseases": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "floors": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "id",
+                                    "name",
+                                    "type",
+                                    "level"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "integer"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "type": {
+                                        "enum": [
+                                            "Basement",
+                                            "GroundFloor",
+                                            "UpperFloor",
+                                            "Attic",
+                                            "Misc"
+                                        ]
+                                    },
+                                    "level": {
+                                        "type": "integer"
+                                    }
+                                }
+                            }
+                        },
+                        "rooms": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "id",
+                                    "floor",
+                                    "name",
+                                    "type",
+                                    "markable"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "integer"
+                                    },
+                                    "floor": {
+                                        "type": "integer"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "type": {
+                                        "enum": [
+                                            "Kitchen",
+                                            "LivingRoom",
+                                            "BedRoom",
+                                            "ChildsRoom",
+                                            "BathRoom",
+                                            "StoreRoom",
+                                            "PlayRoom",
+                                            "WorkRoom",
+                                            "BasementRoom",
+                                            "Garage",
+                                            "Hall",
+                                            "Misc",
+                                            "Outside"
+                                        ]
+                                    },
+                                    "markable": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            }
+                        },
+                        "devices": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "id",
+                                    "type",
+                                    "hasObjectImage",
+                                    "switchable"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "integer"
+                                    },
+                                    "room": {
+                                        "type": "integer"
+                                    },
+                                    "position": {
+                                        "type": "object",
+                                        "required": [
+                                            "x",
+                                            "y"
+                                        ],
+                                        "properties": {
+                                            "x": {
+                                                "type": "integer"
+                                            },
+                                            "y": {
+                                                "type": "integer"
+                                            }
+                                        }
+                                    },
+                                    "type": {
+                                        "enum": [
+                                            "SmokeDetector",
+                                            "MotionSensor",
+                                            "SwitchButton",
+                                            "TemperatureSensor",
+                                            "Window",
+                                            "Door",
+                                            "Light",
+                                            "Shutter",
+                                            "EmergencyOff",
+                                            "ValveGas",
+                                            "ValveWater",
+                                            "Photovoltaic",
+                                            "PhotovoltaicInverter",
+                                            "PhotovoltaicEmergencySwitch",
+                                            "Camera",
+                                            "Image"
+                                        ]
+                                    },
+                                    "hasObjectImage": {
+                                        "type": "boolean"
+                                    },
+                                    "direction": {
+                                        "$comment": "Angle to top of map in degree, e.g., 0 = direction is top, 90 = direction is right, ...",
+                                        "type": "number"
+                                    },
+                                    "switchable": {
+                                        "type": "boolean"
+                                    },
+                                    "showMarking": {
+                                        "type": "boolean"
+                                    },
+                                    "connectingRoom": {
+                                        "$comment": "ID of room, -1 if none (e.g., door to outside)",
+                                        "type": "integer"
+                                    }
+                                },
+                                "allOf": [
+                                    {
+                                        "if": {
+                                            "properties": {
+                                                "type": {
+                                                    "enum": [
+                                                        "SmokeDetector",
+                                                        "MotionSensor",
+                                                        "SwitchButton",
+                                                        "TemperatureSensor",
+                                                        "Window",
+                                                        "Door",
+                                                        "Light",
+                                                        "Shutter",
+                                                        "ValveGas",
+                                                        "ValveWater",
+                                                        "Photovoltaic",
+                                                        "PhotovoltaicInverter",
+                                                        "PhotovoltaicEmergencySwitch",
+                                                        "Camera",
+                                                        "Image"
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        "then": {
+                                            "required": [
+                                                "room",
+                                                "position"
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "if": {
+                                            "properties": {
+                                                "type": {
+                                                    "enum": [
+                                                        "Camera",
+                                                        "Image"
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        "then": {
+                                            "required": [
+                                                "direction"
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "if": {
+                                            "properties": {
+                                                "type": {
+                                                    "enum": [
+                                                        "Light"
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        "then": {
+                                            "required": [
+                                                "showMarking"
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "if": {
+                                            "properties": {
+                                                "type": {
+                                                    "enum": [
+                                                        "Door"
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        "then": {
+                                            "required": [
+                                                "connectingRoom"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                },
+                {
+                    "$comment": "Response to getMaps",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "floor",
+                            "map",
+                            "pixelsPerMeter",
+                            "north",
+                            "coordinates"
+                        ],
+                        "properties": {
+                            "floor": {
+                                "type": "integer"
+                            },
+                            "map": {
+                                "$comment": "Base64 coded image",
+                                "type": "string"
+                            },
+                            "pixelsPerMeter": {
+                                "$comment": "Pixels per meter within the SVG so the proper dimensions can be computed",
+                                "type": "number"
+                            },
+                            "north": {
+                                "$comment": "Angle to north in degree, e.g., 0 = north is top, 90 = north is right, ...",
+                                "type": "number"
+                            },
+                            "coordinates": {
+                                "type": "object",
+                                "required": [
+                                    "longitude",
+                                    "latitude"
+                                ],
+                                "longitude": {
+                                    "type": "number"
+                                },
+                                "latitude": {
+                                    "type": "number"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "$comment": "Response to getStatus",
+                    "type": "object",
+                    "properties": {
+                        "persons": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "id",
+                                    "present"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "integer"
+                                    },
+                                    "present": {
+                                        "enum": [
+                                            "Present",
+                                            "NotPresent",
+                                            "Unknown"
+                                        ]
+                                    },
+                                    "likelyPositions": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "required": [
+                                                "room",
+                                                "probability"
+                                            ],
+                                            "properties": {
+                                                "room": {
+                                                    "type": "integer"
+                                                },
+                                                "probability": {
+                                                    "type": "number",
+                                                    "exclusiveMinimum": 0,
+                                                    "exclusiveMaximum": 1
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                "if": {
+                                    "properties": {
+                                        "present": {
+                                            "const": "Present"
+                                        }
+                                    }
+                                },
+                                "then": {
+                                    "required": [
+                                        "likelyPositions"
+                                    ]
+                                }
+                            }
+                        },
+                        "rooms": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "id",
+                                    "status",
+                                    "lastPresence",
+                                    "marked"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "integer"
+                                    },
+                                    "status": {
+                                        "type": "array",
+                                        "items": {
+                                            "enum": [
+                                                "Smoked",
+                                                "Burning"
+                                            ]
+                                        }
+                                    },
+                                    "lastPresence": {
+                                        "comment$": "Unix Timestamp, 0 if nothing available",
+                                        "type": "integer"
+                                    },
+                                    "marked": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            }
+                        },
+                        "devices": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "id",
+                                    "value",
+                                    "lastUpdate",
+                                    "lastChange"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "integer"
+                                    },
+                                    "lastUpdate": {
+                                        "comment$": "Unix Timestamp",
+                                        "type": "integer"
+                                    },
+                                    "lastChange": {
+                                        "comment$": "Unix Timestamp",
+                                        "type": "integer"
+                                    }
+                                },
+                                "anyOf": [
+                                    {
+                                        "$comment": "SmokeDetector",
+                                        "properties": {
+                                            "value": {
+                                                "type": "object",
+                                                "required": [
+                                                    "smoke"
+                                                ],
+                                                "properties": {
+                                                    "smoke": {
+                                                        "type": "number",
+                                                        "minimum": 0,
+                                                        "maximum": 1
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "$comment": "Door or Window",
+                                        "properties": {
+                                            "value": {
+                                                "type": "object",
+                                                "required": [
+                                                    "open"
+                                                ],
+                                                "properties": {
+                                                    "open": {
+                                                        "type": "boolean"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "$comment": "MotionSensor",
+                                        "properties": {
+                                            "value": {
+                                                "type": "object",
+                                                "required": [
+                                                    "motionDetected",
+                                                    "lastUpdate"
+                                                ],
+                                                "properties": {
+                                                    "motionDetected": {
+                                                        "type": "boolean"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "$comment": "SwitchButton",
+                                        "properties": {
+                                            "value": {
+                                                "type": "object",
+                                                "required": [
+                                                    "lastUpdate"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "$comment": "TemperatureSensor",
+                                        "properties": {
+                                            "value": {
+                                                "type": "object",
+                                                "required": [
+                                                    "temperature"
+                                                ],
+                                                "properties": {
+                                                    "temperature": {
+                                                        "type": "number"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "$comment": "Light",
+                                        "properties": {
+                                            "value": {
+                                                "type": "object",
+                                                "required": [
+                                                    "on"
+                                                ],
+                                                "properties": {
+                                                    "on": {
+                                                        "type": "boolean"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "$comment": "Shutter",
+                                        "properties": {
+                                            "value": {
+                                                "type": "object",
+                                                "required": [
+                                                    "shutterPosition"
+                                                ],
+                                                "properties": {
+                                                    "shutterPosition": {
+                                                        "type": "number",
+                                                        "minimum": 0,
+                                                        "maximum": 1
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "$comment": "EmergencyOff",
+                                        "properties": {
+                                            "value": {
+                                                "type": "object",
+                                                "required": [
+                                                    "active"
+                                                ],
+                                                "properties": {
+                                                    "active": {
+                                                        "type": "boolean"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "$comment": "Camera",
+                                        "properties": {
+                                            "value": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "image": {
+                                                        "$comment": "Base64 coded image - only delivered when getStatus-Request contains id",
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "$comment": "Image",
+                                        "properties": {
+                                            "value": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "image": {
+                                                        "$comment": "Base64 coded image - only delivered when getStatus-Request contains id",
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "$comment": "TODO: Fill in the remaining device types",
+                                        "const": false
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                },
+                {
+                    "$comment": "Response to getObjectImage",
+                    "type": "object",
+                    "required": [
+                        "objectImage"
+                    ],
+                    "properties": {
+                        "objectImage": {
+                            "$comment": "Base64 coded image",
+                            "type": "string"
+                        }   
+                    }
+                },
+                {
+                    "$comment": "TODO: Response to getArchiveData",
+                    "const": false
+                },
+                {
+                    "$comment": "Response to switchDevice, resetAlarm, and setRoomMarked",
+                    "const": true
+                }
+            ]
+        }
+    }
+}

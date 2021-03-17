@@ -1,0 +1,176 @@
+{
+    "type": "object",
+    "required": [
+        "jsonrpc",
+        "method",
+        "id"
+    ],
+    "properties": {
+        "jsonrpc": {
+            "const": "2.0"
+        },
+        "method": {
+            "enum": [
+                "isAlarm",
+                "resetAlarm",
+                "getGeneralInformation",
+                "getObjectList",
+                "getMaps",
+                "getStatus",
+                "getArchiveData",
+                "switchDevice",
+                "getObjectImage",
+                "setRoomMarked"
+            ]
+        },
+        "params": {
+            "type": "object"
+        },
+        "id": {
+            "type": [
+                "string",
+                "integer"
+            ]
+        }
+    },
+    "anyOf": [{
+            "properties": {
+                "method": {
+                    "enum": [
+                        "isAlarm",
+                        "resetAlarm",
+                        "getGeneralInformation",
+                        "getObjectList",
+                        "getMaps"
+                    ]
+                }
+            },
+            "not": {
+                "required": [
+                    "params"
+                ]
+            }
+        },
+        {
+            "properties": {
+                "method": {
+                    "const": "getStatus"
+                },
+                "params": {
+                    "properties": {
+                        "ids": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "required": [
+                "params"
+            ],
+            "properties": {
+                "method": {
+                    "const": "getObjectImage"
+                },
+                "params": {
+                    "required": [
+                        "id"
+                    ],
+                    "properties": {
+                        "id": {
+                            "type": "integer"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "required": [
+                "params"
+            ],
+            "properties": {
+                "method": {
+                    "const": "getArchiveData"
+                },
+                "params": {
+                    "required": [
+                        "ids"
+                    ],
+                    "properties": {
+                        "ids": {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "integer"
+                            }
+                        },
+                        "from": {
+                            "$comment": "UnixTimestamp",
+                            "type": "integer"
+                        },
+                        "until": {
+                            "$comment": "UnixTimestamp",
+                            "type": "integer"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "required": [
+                "params"
+            ],
+            "properties": {
+                "method": {
+                    "const": "switchDevice"
+                },
+                "params": {
+                    "required": [
+                        "id",
+                        "value"
+                    ],
+                    "properties": {
+                        "id": {
+                            "type": "integer"
+                        },
+                        "value": {
+                            "type": [
+                                "number",
+                                "boolean",
+                                "string"
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "required": [
+                "params"
+            ],
+            "properties": {
+                "method": {
+                    "const": "setRoomMarked"
+                },
+                "params": {
+                    "required": [
+                        "id",
+                        "marked"
+                    ],
+                    "properties": {
+                        "id": {
+                            "type": "integer"
+                        },
+                        "marked": {
+                            "type": "boolean"
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}
