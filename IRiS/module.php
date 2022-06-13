@@ -1,4 +1,4 @@
-<?
+<?php
 
 include __DIR__ . "/../libs/WebHookModule.php";
 include_once __DIR__ . '/helper/autoload.php';
